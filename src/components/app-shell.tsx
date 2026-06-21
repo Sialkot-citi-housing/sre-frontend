@@ -101,7 +101,7 @@ export function AppShell({
 
       <div className="lg:pl-64">
         {/* Header */}
-        <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+        <header className="sticky top-0 z-30 border-b border-border bg-card">
           <div className="flex h-20 items-center gap-6 px-6">
             <div className="min-w-0">
               <h1 className="truncate text-xl font-bold tracking-tight text-foreground">

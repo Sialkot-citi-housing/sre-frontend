@@ -28,6 +28,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fmtPKR, projects } from "@/lib/projects-data";
+import { AddLedgerEntryDialog } from "@/components/dialogs/add-ledger-entry-dialog";
+import { LogDailyEntryDialog } from "@/components/dialogs/log-daily-entry-dialog";
 
 export const Route = createFileRoute("/projects/$projectId")({
   loader: ({ params }) => {
@@ -206,9 +208,13 @@ function ProjectLedger() {
               <Button variant="outline" className="gap-1.5">
                 <FileUp className="h-4 w-4" /> Export Ledger
               </Button>
-              <Button className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
-                <Plus className="h-4 w-4" /> Add Entry
-              </Button>
+              <AddLedgerEntryDialog
+                trigger={
+                  <Button className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
+                    <Plus className="h-4 w-4" /> Add Entry
+                  </Button>
+                }
+              />
             </div>
           </div>
 
@@ -318,9 +324,13 @@ function ProjectLedger() {
               <Button variant="outline" size="sm" className="gap-1.5">
                 <FileUp className="h-4 w-4" /> Attach Receipt
               </Button>
-              <Button size="sm" className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
-                <Plus className="h-4 w-4" /> Log Entry
-              </Button>
+              <LogDailyEntryDialog
+                trigger={
+                  <Button size="sm" className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
+                    <Plus className="h-4 w-4" /> Log Entry
+                  </Button>
+                }
+              />
             </div>
           </div>
           <div className="overflow-x-auto">
