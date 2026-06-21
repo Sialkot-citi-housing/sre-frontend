@@ -8,11 +8,17 @@ import {
   Layers,
   Minus,
   Plus,
+  Pencil,
+  Eye,
+  Paperclip,
+  CalendarDays,
   Wallet,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -57,17 +63,66 @@ type LedgerRow = {
   procured: number;
   unit: string;
   rate: number;
+  category: "bricks" | "cement" | "steel" | "sandcrush" | "labour";
 };
 
 const ledger: LedgerRow[] = [
-  { item: "Awwal Bricks", required: 42000, procured: 38500, unit: "Pcs", rate: 22 },
-  { item: "Grade-60 Serya", required: 3.2, procured: 3.4, unit: "Tons", rate: 305000 },
-  { item: "Lucky Cement", required: 480, procured: 455, unit: "Bags", rate: 1340 },
-  { item: "Chenab Sand", required: 28, procured: 26, unit: "Trolly", rate: 12500 },
-  { item: "Sargodha Bajri", required: 18, procured: 18, unit: "Trolly", rate: 18500 },
-  { item: "Margalla Crush", required: 14, procured: 12, unit: "Trolly", rate: 21000 },
-  { item: "Labour — Mason", required: 320, procured: 286, unit: "Days", rate: 2200 },
+  { item: "Awwal Bricks", required: 42000, procured: 38500, unit: "Pcs", rate: 22, category: "bricks" },
+  { item: "Doyam Bricks", required: 6000, procured: 6000, unit: "Pcs", rate: 16, category: "bricks" },
+  { item: "Lucky Cement (OPC)", required: 380, procured: 360, unit: "Bags", rate: 1340, category: "cement" },
+  { item: "Maple Leaf SRC", required: 80, procured: 75, unit: "Bags", rate: 1410, category: "cement" },
+  { item: "Elephant White Cement", required: 20, procured: 20, unit: "Bags", rate: 2650, category: "cement" },
+  { item: "Grade-60 Serya 12mm", required: 1.8, procured: 1.9, unit: "Tons", rate: 305000, category: "steel" },
+  { item: "Grade-60 Serya 16mm", required: 1.4, procured: 1.5, unit: "Tons", rate: 308000, category: "steel" },
+  { item: "Chenab Sand", required: 28, procured: 26, unit: "Trolly", rate: 12500, category: "sandcrush" },
+  { item: "Sargodha Bajri", required: 18, procured: 18, unit: "Trolly", rate: 18500, category: "sandcrush" },
+  { item: "Margalla Crush", required: 14, procured: 12, unit: "Trolly", rate: 21000, category: "sandcrush" },
+  { item: "Labour — Mason", required: 320, procured: 286, unit: "Days", rate: 2200, category: "labour" },
+  { item: "Labour — Helper", required: 410, procured: 372, unit: "Days", rate: 1400, category: "labour" },
 ];
+
+const CATEGORY_TABS = [
+  { id: "all", label: "All (Overview)" },
+  { id: "bricks", label: "Bricks" },
+  { id: "cement", label: "Cement" },
+  { id: "steel", label: "Steel (Serya)" },
+  { id: "sandcrush", label: "Sand & Crush" },
+  { id: "labour", label: "Labour" },
+] as const;
+
+type DailyEntry = {
+  date: string;
+  category: "Material Received" | "Labour Logged" | "Site Note" | "Payment";
+  details: string;
+  addedBy: string;
+  vendor: string;
+  receipt: boolean;
+};
+
+const dailyEntries: DailyEntry[] = [
+  { date: "21 Jun 2026", category: "Material Received", details: "50 bags Lucky Cement (OPC)", addedBy: "A. Khan", vendor: "Bilal Traders", receipt: true },
+  { date: "21 Jun 2026", category: "Labour Logged", details: "8 Masons + 12 Helpers (1st floor slab)", addedBy: "Site Foreman", vendor: "Thekedar Yousaf", receipt: false },
+  { date: "20 Jun 2026", category: "Material Received", details: "1.2 Ton Grade-60 Serya 12mm", addedBy: "A. Khan", vendor: "Ittefaq Steel", receipt: true },
+  { date: "20 Jun 2026", category: "Payment", details: "Advance PKR 250,000 to Thekedar Yousaf", addedBy: "Accounts", vendor: "Thekedar Yousaf", receipt: true },
+  { date: "19 Jun 2026", category: "Material Received", details: "4 Trolly Chenab Sand", addedBy: "Site Foreman", vendor: "Chenab Suppliers", receipt: true },
+  { date: "19 Jun 2026", category: "Site Note", details: "Curing started — column line C", addedBy: "Engr. Tahir", vendor: "—", receipt: false },
+  { date: "18 Jun 2026", category: "Material Received", details: "12,000 Awwal Bricks", addedBy: "A. Khan", vendor: "Sialkot Brick Kiln", receipt: true },
+  { date: "18 Jun 2026", category: "Labour Logged", details: "6 Masons (boundary wall)", addedBy: "Site Foreman", vendor: "Thekedar Imran", receipt: false },
+];
+
+function CategoryBadge({ category }: { category: DailyEntry["category"] }) {
+  const map: Record<DailyEntry["category"], string> = {
+    "Material Received": "bg-[color:var(--sre-blue)]/10 text-[color:var(--sre-blue)]",
+    "Labour Logged": "bg-emerald-50 text-emerald-700",
+    "Site Note": "bg-amber-50 text-amber-700",
+    Payment: "bg-destructive/10 text-destructive",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${map[category]}`}>
+      {category}
+    </span>
+  );
+}
 
 function VarianceCell({ required, procured }: { required: number; procured: number }) {
   const diff = procured - required;
