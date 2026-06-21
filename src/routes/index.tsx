@@ -5,6 +5,7 @@ import { ProjectCard } from "@/components/project-card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { projects } from "@/lib/projects-data";
+import { NewProjectDialog } from "@/components/dialogs/new-project-dialog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,9 +47,13 @@ function ProjectsPortfolio() {
             </TabsTrigger>
           </TabsList>
 
-          <Button className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
-            <Plus className="h-4 w-4" /> New Project
-          </Button>
+          <NewProjectDialog
+            trigger={
+              <Button className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
+                <Plus className="h-4 w-4" /> New Project
+              </Button>
+            }
+          />
         </div>
 
         <TabsContent value="active" className="mt-0">
