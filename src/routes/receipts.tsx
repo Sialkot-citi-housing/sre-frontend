@@ -4,6 +4,15 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/receipts")({
+  head: () => ({
+    meta: [
+      { title: "Vendor Receipts — SRE Construction Portal" },
+      {
+        name: "description",
+        content: "Centralised proof of procurement for every Sialkot Real Estate project.",
+      },
+    ],
+  }),
   component: Receipts,
 });
 
