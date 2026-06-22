@@ -16,6 +16,15 @@ import {
 } from "recharts";
 
 export const Route = createFileRoute("/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "Dashboard — SRE Construction Portal" },
+      {
+        name: "description",
+        content: "Portfolio overview, monthly procurement spend and live activity for SRE.",
+      },
+    ],
+  }),
   component: Dashboard,
 });
 

@@ -10,6 +10,16 @@ import { Separator } from "@/components/ui/separator";
 import { fmtPKR } from "@/lib/projects-data";
 
 export const Route = createFileRoute("/quotations")({
+  head: () => ({
+    meta: [
+      { title: "Smart Quotations — SRE Construction Portal" },
+      {
+        name: "description",
+        content:
+          "Naqsha AI quotations — instantly estimate grey-structure costs for any plot.",
+      },
+    ],
+  }),
   component: Quotations,
 });
 
