@@ -51,7 +51,7 @@ export const Route = createFileRoute("/projects/$projectId")({
     <AppShell title="Project not found">
       <p className="text-sm text-muted-foreground">
         That project doesn't exist.{" "}
-        <Link to="/" className="font-medium text-[color:var(--sre-blue)] underline">
+        <Link to="/ledgers" className="font-medium text-[color:var(--sre-blue)] underline">
           Back to portfolio
         </Link>
       </p>
@@ -178,7 +178,7 @@ function ProjectLedger() {
     >
       <div className="mb-5">
         <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-          <Link to="/">
+          <Link to="/ledgers">
             <ArrowLeft className="h-4 w-4" /> Back to portfolio
           </Link>
         </Button>
