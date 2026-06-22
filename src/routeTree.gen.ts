@@ -13,6 +13,7 @@ import { Route as ReceiptsRouteImport } from './routes/receipts'
 import { Route as QuotationsRouteImport } from './routes/quotations'
 import { Route as LedgersRouteImport } from './routes/ledgers'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 
 const ReceiptsRoute = ReceiptsRouteImport.update({
@@ -35,6 +36,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
@@ -42,6 +48,7 @@ const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/ledgers': typeof LedgersRoute
   '/quotations': typeof QuotationsRoute
@@ -49,6 +56,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId': typeof ProjectsProjectIdRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/ledgers': typeof LedgersRoute
   '/quotations': typeof QuotationsRoute
@@ -57,6 +65,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/ledgers': typeof LedgersRoute
   '/quotations': typeof QuotationsRoute
@@ -66,6 +75,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/dashboard'
     | '/ledgers'
     | '/quotations'
@@ -73,6 +83,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/dashboard'
     | '/ledgers'
     | '/quotations'
@@ -80,6 +91,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
   id:
     | '__root__'
+    | '/'
     | '/dashboard'
     | '/ledgers'
     | '/quotations'
@@ -88,6 +100,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LedgersRoute: typeof LedgersRoute
   QuotationsRoute: typeof QuotationsRoute
@@ -125,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$projectId': {
       id: '/projects/$projectId'
       path: '/projects/$projectId'
@@ -136,6 +156,7 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LedgersRoute: LedgersRoute,
   QuotationsRoute: QuotationsRoute,
