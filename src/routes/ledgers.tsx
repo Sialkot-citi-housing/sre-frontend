@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { projects } from "@/lib/projects-data";
 import { NewProjectDialog } from "@/components/dialogs/new-project-dialog";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/ledgers")({
   head: () => ({
     meta: [
       { title: "Project Ledgers — SRE Construction Portal" },
