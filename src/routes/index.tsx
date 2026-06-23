@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
-import sreLogo from "@/assets/sre-logo.png.asset.json";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,7 +57,7 @@ function LoginPage() {
         {/* Left — brand panel */}
         <div className="hidden flex-col justify-between lg:flex">
           <div className="flex items-center gap-3">
-            <img src={sreLogo.url} alt="Sialkot Real Estate" className="h-12 w-auto" />
+            <img src="/sre-logo.png" alt="Sialkot Real Estate" className="h-12 w-auto" />
             <div className="leading-tight">
               <div className="text-sm font-bold uppercase tracking-wider text-[color:var(--sre-red)]">
                 Sialkot Real Estate
@@ -99,7 +99,7 @@ function LoginPage() {
         {/* Right — form card */}
         <div className="mx-auto w-full max-w-md">
           <div className="mb-6 flex items-center justify-center gap-3 lg:hidden">
-            <img src={sreLogo.url} alt="Sialkot Real Estate" className="h-10 w-auto" />
+            <img src="/sre-logo.png" alt="Sialkot Real Estate" className="h-10 w-auto" />
             <div className="text-sm font-bold uppercase tracking-wider text-[color:var(--sre-red)]">
               SRE Portal
             </div>
