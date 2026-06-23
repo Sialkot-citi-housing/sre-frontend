@@ -11,7 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import sreLogo from "../assets/sre-logo.png.asset.json";
+
 
 function NotFoundComponent() {
   return (
@@ -98,8 +98,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", type: "image/png", href: sreLogo.url },
-      { rel: "apple-touch-icon", href: sreLogo.url },
+      { rel: "icon", type: "image/png", href: "/sre-logo.png" },
+      { rel: "apple-touch-icon", href: "/sre-logo.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {

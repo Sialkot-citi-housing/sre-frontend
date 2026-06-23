@@ -12,7 +12,7 @@ import {
   Settings,
   Sparkles,
 } from "lucide-react";
-import sreLogo from "@/assets/sre-logo.png.asset.json";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -66,7 +66,7 @@ export function AppShell({
   const SidebarContents = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
       <div className="flex h-20 items-center gap-3 border-b border-border px-5">
-        <img src={sreLogo.url} alt="Sialkot Real Estate" className="h-10 w-auto object-contain" />
+        <img src="/sre-logo.png" alt="Sialkot Real Estate" className="h-10 w-auto object-contain" />
         <div className="leading-tight">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-destructive">
             SRE
