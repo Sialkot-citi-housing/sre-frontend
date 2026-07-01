@@ -11,6 +11,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ type NavItem = {
 const nav: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/ledgers", label: "Project Ledgers", icon: FileText, matchPrefix: "/projects" },
+  { to: "/office-expenses", label: "Office Expenses", icon: Wallet },
   { to: "/quotations", label: "Smart Quotations", icon: Sparkles },
   { to: "/receipts", label: "Vendor Receipts", icon: Receipt },
 ];
