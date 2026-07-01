@@ -114,6 +114,42 @@ const dailyEntries: DailyEntry[] = [
   { date: "18 Jun 2026", category: "Labour Logged", details: "6 Masons (boundary wall)", addedBy: "Site Foreman", vendor: "Thekedar Imran", receipt: false },
 ];
 
+type Contractor = {
+  id: string;
+  role:
+    | "Thekadar"
+    | "Plumber"
+    | "Electrician"
+    | "Designer (Painter)"
+    | "Ceiling / Palling";
+  name: string;
+  contact: string;
+  agreedAmount: number;
+  paid: number;
+  status: "Active" | "Completed" | "On hold";
+};
+
+const contractors: Contractor[] = [
+  { id: "c1", role: "Thekadar", name: "Yousaf Bhatti", contact: "0300-1234567", agreedAmount: 1250000, paid: 780000, status: "Active" },
+  { id: "c2", role: "Plumber", name: "Rashid & Sons", contact: "0321-7654321", agreedAmount: 185000, paid: 90000, status: "Active" },
+  { id: "c3", role: "Electrician", name: "Sialkot Electric Works", contact: "0302-2233445", agreedAmount: 240000, paid: 60000, status: "Active" },
+  { id: "c4", role: "Designer (Painter)", name: "Master Aslam", contact: "0345-9988776", agreedAmount: 320000, paid: 0, status: "On hold" },
+  { id: "c5", role: "Ceiling / Palling", name: "Kamran Ceiling House", contact: "0333-1122334", agreedAmount: 210000, paid: 0, status: "On hold" },
+];
+
+function ContractorStatusBadge({ status }: { status: Contractor["status"] }) {
+  const map: Record<Contractor["status"], string> = {
+    Active: "bg-emerald-50 text-emerald-700",
+    Completed: "bg-[color:var(--sre-blue)]/10 text-[color:var(--sre-blue)]",
+    "On hold": "bg-amber-50 text-amber-700",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${map[status]}`}>
+      {status}
+    </span>
+  );
+}
+
 function CategoryBadge({ category }: { category: DailyEntry["category"] }) {
   const map: Record<DailyEntry["category"], string> = {
     "Material Received": "bg-[color:var(--sre-blue)]/10 text-[color:var(--sre-blue)]",
