@@ -32,6 +32,7 @@ import {
 import { fmtPKR, projects } from "@/lib/projects-data";
 import { AddLedgerEntryDialog } from "@/components/dialogs/add-ledger-entry-dialog";
 import { LogDailyEntryDialog } from "@/components/dialogs/log-daily-entry-dialog";
+import { AddContractorDialog } from "@/components/dialogs/add-contractor-dialog";
 
 export const Route = createFileRoute("/projects/$projectId")({
   loader: ({ params }) => {
@@ -375,9 +376,13 @@ function ProjectLedger() {
                 </p>
               </div>
             </div>
-            <Button size="sm" className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
-              <Plus className="h-4 w-4" /> Add Contractor
-            </Button>
+            <AddContractorDialog
+              trigger={
+                <Button size="sm" className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
+                  <Plus className="h-4 w-4" /> Add Contractor
+                </Button>
+              }
+            />
           </div>
           <div className="overflow-x-auto">
             <Table>
