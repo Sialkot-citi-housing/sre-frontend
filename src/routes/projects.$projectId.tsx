@@ -13,6 +13,8 @@ import {
   Paperclip,
   CalendarDays,
   Wallet,
+  HardHat,
+  Phone,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
