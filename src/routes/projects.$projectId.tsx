@@ -208,6 +208,12 @@ function ProjectLedger() {
   const totalEstimate = ledger.reduce((s, r) => s + r.required * r.rate, 0);
   const filtered = activeTab === "all" ? ledger : ledger.filter((r) => r.category === activeTab);
   const filteredTotal = filtered.reduce((s, r) => s + r.procured * r.rate, 0);
+  const qtyByUnit = filtered.reduce<Record<string, number>>((acc, r) => {
+    acc[r.unit] = (acc[r.unit] ?? 0) + r.procured;
+    return acc;
+  }, {});
+  const contractorsTotal = contractors.reduce((s, c) => s + c.agreedAmount, 0);
+  const contractorsPaid = contractors.reduce((s, c) => s + c.paid, 0);
 
   return (
     <AppShell
@@ -337,10 +343,96 @@ function ProjectLedger() {
               </TableBody>
             </Table>
           </div>
-          <div className="flex items-center justify-between border-t border-border bg-secondary/40 px-6 py-3 text-sm">
-            <span className="text-muted-foreground">{filtered.length} line items {activeTab !== "all" && `· filtered`}</span>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/40 px-6 py-3 text-sm">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="text-muted-foreground">
+                {filtered.length} line items{activeTab !== "all" && ` · filtered`}
+              </span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-foreground">
+                <span className="text-muted-foreground">Total Qty:</span>{" "}
+                {Object.entries(qtyByUnit)
+                  .map(([unit, qty]) => `${fmtPKR(qty)} ${unit}`)
+                  .join(" · ")}
+              </span>
+            </div>
             <span className="font-semibold text-foreground">
               {activeTab === "all" ? "Running total" : "Subtotal"}: PKR {fmtPKR(activeTab === "all" ? totalSpent : filteredTotal)}
+            </span>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-[color:var(--sre-blue)]/10 p-2 text-[color:var(--sre-blue)]">
+                <HardHat className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Contractors &amp; Trades</h3>
+                <p className="text-xs text-muted-foreground">
+                  Thekadar, plumber, electrician, designer &amp; ceiling — scoped to this project
+                </p>
+              </div>
+            </div>
+            <Button size="sm" className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
+              <Plus className="h-4 w-4" /> Add Contractor
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-secondary/60 hover:bg-secondary/60">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Role</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Name</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Contact</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Agreed (PKR)</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Paid (PKR)</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Balance (PKR)</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Status</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {contractors.map((c) => (
+                  <TableRow key={c.id} className="border-border transition-colors hover:bg-accent/40">
+                    <TableCell>
+                      <span className="inline-flex items-center rounded-full bg-[color:var(--sre-blue)]/10 px-2.5 py-1 text-xs font-medium text-[color:var(--sre-blue)]">
+                        {c.role}
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-medium text-foreground">{c.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5" /> {c.contact}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(c.agreedAmount)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(c.paid)}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(c.agreedAmount - c.paid)}</TableCell>
+                    <TableCell><ContractorStatusBadge status={c.status} /></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="View details">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/40 px-6 py-3 text-sm">
+            <span className="text-muted-foreground">{contractors.length} contractors</span>
+            <span className="font-semibold text-foreground">
+              Paid PKR {fmtPKR(contractorsPaid)} / {fmtPKR(contractorsTotal)}
+              <span className="ml-2 font-normal text-muted-foreground">
+                (Balance PKR {fmtPKR(contractorsTotal - contractorsPaid)})
+              </span>
             </span>
           </div>
         </div>
