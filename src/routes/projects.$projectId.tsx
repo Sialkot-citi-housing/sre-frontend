@@ -322,7 +322,9 @@ function ProjectLedger() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((row) => (
+                {filtered.map((row) => {
+                  const rowIdx = ledger.indexOf(row);
+                  return (
                   <TableRow key={row.item} className="border-border transition-colors hover:bg-accent/40">
                     <TableCell className="font-medium text-foreground">{row.item}</TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">{fmtPKR(row.required)}</TableCell>
@@ -333,7 +335,7 @@ function ProjectLedger() {
                     <TableCell><VarianceCell required={row.required} procured={row.procured} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit row">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit row" onClick={() => setEditLedgerIdx(rowIdx)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="View details">
@@ -342,7 +344,8 @@ function ProjectLedger() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
                 {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
