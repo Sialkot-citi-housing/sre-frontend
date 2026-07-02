@@ -411,7 +411,7 @@ function ProjectLedger() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contractors.map((c) => (
+                {contractors.map((c, idx) => (
                   <TableRow key={c.id} className="border-border transition-colors hover:bg-accent/40">
                     <TableCell>
                       <span className="inline-flex items-center rounded-full bg-[color:var(--sre-blue)]/10 px-2.5 py-1 text-xs font-medium text-[color:var(--sre-blue)]">
@@ -430,7 +430,7 @@ function ProjectLedger() {
                     <TableCell><ContractorStatusBadge status={c.status} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorIdx(idx)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="View details">
@@ -508,6 +508,11 @@ function ProjectLedger() {
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit entry" onClick={() => setEditDailyIdx(i)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
