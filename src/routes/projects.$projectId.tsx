@@ -490,6 +490,7 @@ function ProjectLedger() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Added By</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Vendor / Thekedar</TableHead>
                   <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground">Receipt</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
