@@ -33,6 +33,7 @@ import { fmtPKR, projects } from "@/lib/projects-data";
 import { AddLedgerEntryDialog } from "@/components/dialogs/add-ledger-entry-dialog";
 import { LogDailyEntryDialog } from "@/components/dialogs/log-daily-entry-dialog";
 import { AddContractorDialog } from "@/components/dialogs/add-contractor-dialog";
+import { EditRecordDialog, type EditField, type EditValues } from "@/components/dialogs/edit-record-dialog";
 
 export const Route = createFileRoute("/projects/$projectId")({
   loader: ({ params }) => {
@@ -71,7 +72,7 @@ type LedgerRow = {
   category: "bricks" | "cement" | "steel" | "sandcrush" | "labour";
 };
 
-const ledger: LedgerRow[] = [
+const INITIAL_LEDGER: LedgerRow[] = [
   { item: "Awwal Bricks", required: 42000, procured: 38500, unit: "Pcs", rate: 22, category: "bricks" },
   { item: "Doyam Bricks", required: 6000, procured: 6000, unit: "Pcs", rate: 16, category: "bricks" },
   { item: "Lucky Cement (OPC)", required: 380, procured: 360, unit: "Bags", rate: 1340, category: "cement" },
@@ -104,7 +105,7 @@ type DailyEntry = {
   receipt: boolean;
 };
 
-const dailyEntries: DailyEntry[] = [
+const INITIAL_DAILY: DailyEntry[] = [
   { date: "21 Jun 2026", category: "Material Received", details: "50 bags Lucky Cement (OPC)", addedBy: "A. Khan", vendor: "Bilal Traders", receipt: true },
   { date: "21 Jun 2026", category: "Labour Logged", details: "8 Masons + 12 Helpers (1st floor slab)", addedBy: "Site Foreman", vendor: "Thekedar Yousaf", receipt: false },
   { date: "20 Jun 2026", category: "Material Received", details: "1.2 Ton Grade-60 Serya 12mm", addedBy: "A. Khan", vendor: "Ittefaq Steel", receipt: true },
@@ -130,7 +131,7 @@ type Contractor = {
   status: "Active" | "Completed" | "On hold";
 };
 
-const contractors: Contractor[] = [
+const INITIAL_CONTRACTORS: Contractor[] = [
   { id: "c1", role: "Thekadar", name: "Yousaf Bhatti", contact: "0300-1234567", agreedAmount: 1250000, paid: 780000, status: "Active" },
   { id: "c2", role: "Plumber", name: "Rashid & Sons", contact: "0321-7654321", agreedAmount: 185000, paid: 90000, status: "Active" },
   { id: "c3", role: "Electrician", name: "Sialkot Electric Works", contact: "0302-2233445", agreedAmount: 240000, paid: 60000, status: "Active" },
