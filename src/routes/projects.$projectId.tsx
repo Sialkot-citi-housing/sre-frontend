@@ -528,6 +528,63 @@ function ProjectLedger() {
           </div>
         </div>
       </div>
+
+      <EditRecordDialog
+        open={editLedgerIdx !== null}
+        onOpenChange={(v) => !v && setEditLedgerIdx(null)}
+        title="Edit Ledger Item"
+        description="Update item, quantities and rate. Totals recalculate automatically."
+        fields={[
+          { key: "item", label: "Item", type: "text", required: true },
+          { key: "category", label: "Category", type: "select", options: ["bricks", "cement", "steel", "sandcrush", "labour"] as const, required: true },
+          { key: "required", label: "Required Qty", type: "number", required: true },
+          { key: "procured", label: "Procured Qty", type: "number", required: true },
+          { key: "unit", label: "Unit", type: "text", required: true },
+          { key: "rate", label: "Avg Rate (PKR)", type: "number", required: true },
+        ]}
+        values={editLedgerIdx !== null ? (ledger[editLedgerIdx] as unknown as EditValues) : null}
+        onSave={(next) => {
+          if (editLedgerIdx === null) return;
+          setLedger((prev) => prev.map((r, i) => (i === editLedgerIdx ? { ...r, ...(next as unknown as LedgerRow) } : r)));
+        }}
+      />
+
+      <EditRecordDialog
+        open={editContractorIdx !== null}
+        onOpenChange={(v) => !v && setEditContractorIdx(null)}
+        title="Edit Contractor"
+        fields={[
+          { key: "role", label: "Role", type: "select", options: ["Thekadar", "Plumber", "Electrician", "Designer (Painter)", "Ceiling / Palling"] as const, required: true },
+          { key: "name", label: "Name", type: "text", required: true },
+          { key: "contact", label: "Contact", type: "tel", required: true },
+          { key: "status", label: "Status", type: "select", options: ["Active", "Completed", "On hold"] as const, required: true },
+          { key: "agreedAmount", label: "Agreed (PKR)", type: "number", required: true },
+          { key: "paid", label: "Paid (PKR)", type: "number", required: true },
+        ]}
+        values={editContractorIdx !== null ? (contractors[editContractorIdx] as unknown as EditValues) : null}
+        onSave={(next) => {
+          if (editContractorIdx === null) return;
+          setContractors((prev) => prev.map((c, i) => (i === editContractorIdx ? { ...c, ...(next as unknown as Contractor) } : c)));
+        }}
+      />
+
+      <EditRecordDialog
+        open={editDailyIdx !== null}
+        onOpenChange={(v) => !v && setEditDailyIdx(null)}
+        title="Edit Daily Entry"
+        fields={[
+          { key: "date", label: "Date", type: "text", required: true },
+          { key: "category", label: "Category", type: "select", options: ["Material Received", "Labour Logged", "Payment", "Site Note"] as const, required: true },
+          { key: "details", label: "Details", type: "textarea", required: true },
+          { key: "vendor", label: "Vendor / Thekedar", type: "text" },
+          { key: "addedBy", label: "Added By", type: "text" },
+        ]}
+        values={editDailyIdx !== null ? (dailyEntries[editDailyIdx] as unknown as EditValues) : null}
+        onSave={(next) => {
+          if (editDailyIdx === null) return;
+          setDailyEntries((prev) => prev.map((e, i) => (i === editDailyIdx ? { ...e, ...(next as unknown as DailyEntry) } : e)));
+        }}
+      />
     </AppShell>
   );
 }
