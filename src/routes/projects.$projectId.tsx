@@ -206,6 +206,14 @@ function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string
 function ProjectLedger() {
   const { project } = Route.useLoaderData();
   const [activeTab, setActiveTab] = useState<string>("all");
+  const [ledger, setLedger] = useState<LedgerRow[]>(INITIAL_LEDGER);
+  const [contractors, setContractors] = useState<Contractor[]>(INITIAL_CONTRACTORS);
+  const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>(INITIAL_DAILY);
+
+  const [editLedgerIdx, setEditLedgerIdx] = useState<number | null>(null);
+  const [editContractorIdx, setEditContractorIdx] = useState<number | null>(null);
+  const [editDailyIdx, setEditDailyIdx] = useState<number | null>(null);
+
   const totalSpent = ledger.reduce((s, r) => s + r.procured * r.rate, 0);
   const totalEstimate = ledger.reduce((s, r) => s + r.required * r.rate, 0);
   const filtered = activeTab === "all" ? ledger : ledger.filter((r) => r.category === activeTab);
