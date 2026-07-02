@@ -33,6 +33,7 @@ import { fmtPKR, projects } from "@/lib/projects-data";
 import { AddLedgerEntryDialog } from "@/components/dialogs/add-ledger-entry-dialog";
 import { LogDailyEntryDialog } from "@/components/dialogs/log-daily-entry-dialog";
 import { AddContractorDialog } from "@/components/dialogs/add-contractor-dialog";
+import { EditRecordDialog, type EditField, type EditValues } from "@/components/dialogs/edit-record-dialog";
 
 export const Route = createFileRoute("/projects/$projectId")({
   loader: ({ params }) => {
@@ -71,7 +72,7 @@ type LedgerRow = {
   category: "bricks" | "cement" | "steel" | "sandcrush" | "labour";
 };
 
-const ledger: LedgerRow[] = [
+const INITIAL_LEDGER: LedgerRow[] = [
   { item: "Awwal Bricks", required: 42000, procured: 38500, unit: "Pcs", rate: 22, category: "bricks" },
   { item: "Doyam Bricks", required: 6000, procured: 6000, unit: "Pcs", rate: 16, category: "bricks" },
   { item: "Lucky Cement (OPC)", required: 380, procured: 360, unit: "Bags", rate: 1340, category: "cement" },
@@ -104,7 +105,7 @@ type DailyEntry = {
   receipt: boolean;
 };
 
-const dailyEntries: DailyEntry[] = [
+const INITIAL_DAILY: DailyEntry[] = [
   { date: "21 Jun 2026", category: "Material Received", details: "50 bags Lucky Cement (OPC)", addedBy: "A. Khan", vendor: "Bilal Traders", receipt: true },
   { date: "21 Jun 2026", category: "Labour Logged", details: "8 Masons + 12 Helpers (1st floor slab)", addedBy: "Site Foreman", vendor: "Thekedar Yousaf", receipt: false },
   { date: "20 Jun 2026", category: "Material Received", details: "1.2 Ton Grade-60 Serya 12mm", addedBy: "A. Khan", vendor: "Ittefaq Steel", receipt: true },
@@ -130,7 +131,7 @@ type Contractor = {
   status: "Active" | "Completed" | "On hold";
 };
 
-const contractors: Contractor[] = [
+const INITIAL_CONTRACTORS: Contractor[] = [
   { id: "c1", role: "Thekadar", name: "Yousaf Bhatti", contact: "0300-1234567", agreedAmount: 1250000, paid: 780000, status: "Active" },
   { id: "c2", role: "Plumber", name: "Rashid & Sons", contact: "0321-7654321", agreedAmount: 185000, paid: 90000, status: "Active" },
   { id: "c3", role: "Electrician", name: "Sialkot Electric Works", contact: "0302-2233445", agreedAmount: 240000, paid: 60000, status: "Active" },
@@ -205,6 +206,14 @@ function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string
 function ProjectLedger() {
   const { project } = Route.useLoaderData();
   const [activeTab, setActiveTab] = useState<string>("all");
+  const [ledger, setLedger] = useState<LedgerRow[]>(INITIAL_LEDGER);
+  const [contractors, setContractors] = useState<Contractor[]>(INITIAL_CONTRACTORS);
+  const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>(INITIAL_DAILY);
+
+  const [editLedgerIdx, setEditLedgerIdx] = useState<number | null>(null);
+  const [editContractorIdx, setEditContractorIdx] = useState<number | null>(null);
+  const [editDailyIdx, setEditDailyIdx] = useState<number | null>(null);
+
   const totalSpent = ledger.reduce((s, r) => s + r.procured * r.rate, 0);
   const totalEstimate = ledger.reduce((s, r) => s + r.required * r.rate, 0);
   const filtered = activeTab === "all" ? ledger : ledger.filter((r) => r.category === activeTab);
@@ -313,7 +322,9 @@ function ProjectLedger() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((row) => (
+                {filtered.map((row) => {
+                  const rowIdx = ledger.indexOf(row);
+                  return (
                   <TableRow key={row.item} className="border-border transition-colors hover:bg-accent/40">
                     <TableCell className="font-medium text-foreground">{row.item}</TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">{fmtPKR(row.required)}</TableCell>
@@ -324,7 +335,7 @@ function ProjectLedger() {
                     <TableCell><VarianceCell required={row.required} procured={row.procured} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit row">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit row" onClick={() => setEditLedgerIdx(rowIdx)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="View details">
@@ -333,7 +344,8 @@ function ProjectLedger() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
                 {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
@@ -399,7 +411,7 @@ function ProjectLedger() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contractors.map((c) => (
+                {contractors.map((c, idx) => (
                   <TableRow key={c.id} className="border-border transition-colors hover:bg-accent/40">
                     <TableCell>
                       <span className="inline-flex items-center rounded-full bg-[color:var(--sre-blue)]/10 px-2.5 py-1 text-xs font-medium text-[color:var(--sre-blue)]">
@@ -418,7 +430,7 @@ function ProjectLedger() {
                     <TableCell><ContractorStatusBadge status={c.status} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorIdx(idx)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="View details">
@@ -478,6 +490,7 @@ function ProjectLedger() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Added By</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Vendor / Thekedar</TableHead>
                   <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground">Receipt</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -497,6 +510,11 @@ function ProjectLedger() {
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit entry" onClick={() => setEditDailyIdx(i)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -510,6 +528,63 @@ function ProjectLedger() {
           </div>
         </div>
       </div>
+
+      <EditRecordDialog
+        open={editLedgerIdx !== null}
+        onOpenChange={(v) => !v && setEditLedgerIdx(null)}
+        title="Edit Ledger Item"
+        description="Update item, quantities and rate. Totals recalculate automatically."
+        fields={[
+          { key: "item", label: "Item", type: "text", required: true },
+          { key: "category", label: "Category", type: "select", options: ["bricks", "cement", "steel", "sandcrush", "labour"] as const, required: true },
+          { key: "required", label: "Required Qty", type: "number", required: true },
+          { key: "procured", label: "Procured Qty", type: "number", required: true },
+          { key: "unit", label: "Unit", type: "text", required: true },
+          { key: "rate", label: "Avg Rate (PKR)", type: "number", required: true },
+        ]}
+        values={editLedgerIdx !== null ? (ledger[editLedgerIdx] as unknown as EditValues) : null}
+        onSave={(next) => {
+          if (editLedgerIdx === null) return;
+          setLedger((prev) => prev.map((r, i) => (i === editLedgerIdx ? { ...r, ...(next as unknown as LedgerRow) } : r)));
+        }}
+      />
+
+      <EditRecordDialog
+        open={editContractorIdx !== null}
+        onOpenChange={(v) => !v && setEditContractorIdx(null)}
+        title="Edit Contractor"
+        fields={[
+          { key: "role", label: "Role", type: "select", options: ["Thekadar", "Plumber", "Electrician", "Designer (Painter)", "Ceiling / Palling"] as const, required: true },
+          { key: "name", label: "Name", type: "text", required: true },
+          { key: "contact", label: "Contact", type: "tel", required: true },
+          { key: "status", label: "Status", type: "select", options: ["Active", "Completed", "On hold"] as const, required: true },
+          { key: "agreedAmount", label: "Agreed (PKR)", type: "number", required: true },
+          { key: "paid", label: "Paid (PKR)", type: "number", required: true },
+        ]}
+        values={editContractorIdx !== null ? (contractors[editContractorIdx] as unknown as EditValues) : null}
+        onSave={(next) => {
+          if (editContractorIdx === null) return;
+          setContractors((prev) => prev.map((c, i) => (i === editContractorIdx ? { ...c, ...(next as unknown as Contractor) } : c)));
+        }}
+      />
+
+      <EditRecordDialog
+        open={editDailyIdx !== null}
+        onOpenChange={(v) => !v && setEditDailyIdx(null)}
+        title="Edit Daily Entry"
+        fields={[
+          { key: "date", label: "Date", type: "text", required: true },
+          { key: "category", label: "Category", type: "select", options: ["Material Received", "Labour Logged", "Payment", "Site Note"] as const, required: true },
+          { key: "details", label: "Details", type: "textarea", required: true },
+          { key: "vendor", label: "Vendor / Thekedar", type: "text" },
+          { key: "addedBy", label: "Added By", type: "text" },
+        ]}
+        values={editDailyIdx !== null ? (dailyEntries[editDailyIdx] as unknown as EditValues) : null}
+        onSave={(next) => {
+          if (editDailyIdx === null) return;
+          setDailyEntries((prev) => prev.map((e, i) => (i === editDailyIdx ? { ...e, ...(next as unknown as DailyEntry) } : e)));
+        }}
+      />
     </AppShell>
   );
 }

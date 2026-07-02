@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fmtPKR } from "@/lib/projects-data";
+import { EditRecordDialog, type EditField, type EditValues } from "@/components/dialogs/edit-record-dialog";
 
 export const Route = createFileRoute("/office-expenses")({
   head: () => ({
@@ -83,7 +84,7 @@ type Expense = {
   receipt: boolean;
 };
 
-const expenses: Expense[] = [
+const INITIAL_EXPENSES: Expense[] = [
   { id: "e1", date: "21 Jun 2026", category: "Utilities", description: "K-Electric bill — June", paidTo: "K-Electric", method: "Bank Transfer", amount: 42800, addedBy: "Accounts", receipt: true },
   { id: "e2", date: "21 Jun 2026", category: "Meals & Tea", description: "Office lunch (team of 6)", paidTo: "Al-Madina Foods", method: "Cash", amount: 3400, addedBy: "A. Khan", receipt: true },
   { id: "e3", date: "20 Jun 2026", category: "Fuel", description: "Petrol — site visits", paidTo: "PSO Cantt Pump", method: "Cash", amount: 6000, addedBy: "Driver", receipt: true },
@@ -211,6 +212,8 @@ function StatTile({ icon, label, value, sub }: { icon: React.ReactNode; label: s
 
 function OfficeExpenses() {
   const [activeCat, setActiveCat] = useState<string>("all");
+  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [editIdx, setEditIdx] = useState<number | null>(null);
 
   const total = expenses.reduce((s, e) => s + e.amount, 0);
   const todayTotal = expenses.filter((e) => e.date === "21 Jun 2026").reduce((s, e) => s + e.amount, 0);
@@ -294,7 +297,9 @@ function OfficeExpenses() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((e) => (
+                {filtered.map((e) => {
+                  const idx = expenses.indexOf(e);
+                  return (
                   <TableRow key={e.id} className="border-border transition-colors hover:bg-accent/40">
                     <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{e.date}</TableCell>
                     <TableCell><CategoryPill category={e.category} /></TableCell>
@@ -313,7 +318,7 @@ function OfficeExpenses() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit expense">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit expense" onClick={() => setEditIdx(idx)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="View details">
@@ -322,7 +327,8 @@ function OfficeExpenses() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
                 {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
@@ -343,6 +349,26 @@ function OfficeExpenses() {
           </div>
         </div>
       </div>
+
+      <EditRecordDialog
+        open={editIdx !== null}
+        onOpenChange={(v) => !v && setEditIdx(null)}
+        title="Edit Expense"
+        description="Update the office expense details."
+        fields={[
+          { key: "date", label: "Date", type: "text", required: true },
+          { key: "category", label: "Category", type: "select", options: EXPENSE_CATEGORIES, required: true },
+          { key: "description", label: "Description", type: "textarea", required: true },
+          { key: "paidTo", label: "Paid To", type: "text", required: true },
+          { key: "method", label: "Method", type: "select", options: PAYMENT_METHODS, required: true },
+          { key: "amount", label: "Amount (PKR)", type: "number", required: true },
+        ]}
+        values={editIdx !== null ? (expenses[editIdx] as unknown as EditValues) : null}
+        onSave={(next) => {
+          if (editIdx === null) return;
+          setExpenses((prev) => prev.map((e, i) => (i === editIdx ? { ...e, ...(next as unknown as Expense) } : e)));
+        }}
+      />
     </AppShell>
   );
 }
