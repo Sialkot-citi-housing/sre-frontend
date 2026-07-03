@@ -3,6 +3,8 @@ import {
   ArrowLeft,
   ArrowDownRight,
   ArrowUpRight,
+  CheckCircle2,
+  CircleDot,
   Clock3,
   FileUp,
   Layers,
@@ -213,6 +215,7 @@ function ProjectLedger() {
   const [editLedgerIdx, setEditLedgerIdx] = useState<number | null>(null);
   const [editContractorIdx, setEditContractorIdx] = useState<number | null>(null);
   const [editDailyIdx, setEditDailyIdx] = useState<number | null>(null);
+  const [markedComplete, setMarkedComplete] = useState(false);
 
   const totalSpent = ledger.reduce((s, r) => s + r.procured * r.rate, 0);
   const totalEstimate = ledger.reduce((s, r) => s + r.required * r.rate, 0);
@@ -224,6 +227,27 @@ function ProjectLedger() {
   }, {});
   const contractorsTotal = contractors.reduce((s, c) => s + c.agreedAmount, 0);
   const contractorsPaid = contractors.reduce((s, c) => s + c.paid, 0);
+
+  // Completion rule checks
+  const checks = {
+    schedule: {
+      ok: project.dayCurrent >= project.dayTotal,
+      label: `Timeline reached (Day ${project.dayCurrent} / ${project.dayTotal})`,
+    },
+    procurement: {
+      ok: ledger.every((r) => r.procured >= r.required),
+      label: `All ${ledger.length} ledger items fully procured`,
+    },
+    payments: {
+      ok: contractors.every((c) => c.paid >= c.agreedAmount),
+      label: `All contractor balances cleared`,
+    },
+    holds: {
+      ok: contractors.every((c) => c.status !== "On hold"),
+      label: `No contractor on hold`,
+    },
+  };
+  const readyToClose = Object.values(checks).every((c) => c.ok);
 
   return (
     <AppShell
@@ -239,6 +263,62 @@ function ProjectLedger() {
       </div>
 
       <div className="space-y-6">
+        {(readyToClose || markedComplete) && (
+          <div
+            className={`flex flex-wrap items-start justify-between gap-4 rounded-xl border p-5 ${
+              markedComplete
+                ? "border-[color:var(--sre-blue)]/30 bg-[color:var(--sre-blue)]/5"
+                : "border-emerald-200 bg-emerald-50"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div className={`rounded-lg p-2 ${markedComplete ? "bg-[color:var(--sre-blue)]/10 text-[color:var(--sre-blue)]" : "bg-emerald-100 text-emerald-700"}`}>
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className={`text-sm font-semibold ${markedComplete ? "text-[color:var(--sre-blue)]" : "text-emerald-800"}`}>
+                  {markedComplete ? "Project marked as complete" : "Ready to close this project"}
+                </h3>
+                <p className={`mt-0.5 text-xs ${markedComplete ? "text-[color:var(--sre-blue)]/80" : "text-emerald-700"}`}>
+                  {markedComplete
+                    ? "This workspace is closed. Move to Completed History from the portfolio."
+                    : "All completion checks passed. Review and confirm to close the workspace."}
+                </p>
+                <ul className={`mt-3 grid gap-1.5 text-xs sm:grid-cols-2 ${markedComplete ? "text-[color:var(--sre-blue)]/80" : "text-emerald-800"}`}>
+                  {Object.entries(checks).map(([k, c]) => (
+                    <li key={k} className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> {c.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            {!markedComplete && (
+              <Button
+                onClick={() => setMarkedComplete(true)}
+                className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+              >
+                <CheckCircle2 className="h-4 w-4" /> Mark project complete
+              </Button>
+            )}
+          </div>
+        )}
+        {!readyToClose && !markedComplete && (
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+              <span className="font-semibold uppercase tracking-wider text-muted-foreground">
+                Completion checklist
+              </span>
+              {Object.entries(checks).map(([k, c]) => (
+                <span key={k} className={`inline-flex items-center gap-1.5 ${c.ok ? "text-emerald-700" : "text-muted-foreground"}`}>
+                  {c.ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <CircleDot className="h-3.5 w-3.5" />}
+                  {c.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="rounded-xl border border-border bg-card p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -265,7 +345,7 @@ function ProjectLedger() {
               <AddLedgerEntryDialog
                 trigger={
                   <Button className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
-                    <Plus className="h-4 w-4" /> Add Entry
+                    <Plus className="h-4 w-4" /> Add Budget Line
                   </Button>
                 }
               />
@@ -285,7 +365,7 @@ function ProjectLedger() {
             <div>
               <h3 className="text-base font-semibold text-foreground">Material &amp; Labour Ledger</h3>
               <p className="text-xs text-muted-foreground">
-                Live procurement vs. estimate — Excel replacement
+                Master budget lines — sets Required qty &amp; rate. Procured qty is driven by the Daily Site Log below.
               </p>
             </div>
             <Button variant="ghost" size="sm" className="text-[color:var(--sre-blue)]">

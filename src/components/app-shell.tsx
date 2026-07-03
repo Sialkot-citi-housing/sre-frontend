@@ -1,18 +1,20 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  Bell,
+  CalendarClock,
   ChevronDown,
+  CornerDownLeft,
   FileText,
+  HardHat,
   LayoutDashboard,
   LogOut,
   Menu,
   Receipt,
   Search,
-  Settings,
   Sparkles,
   Wallet,
 } from "lucide-react";
+import { projects } from "@/lib/projects-data";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +43,18 @@ const nav: NavItem[] = [
   { to: "/receipts", label: "Vendor Receipts", icon: Receipt },
 ];
 
+type SearchHit =
+  | { kind: "project"; id: string; title: string; sub: string; to: string }
+  | { kind: "page"; title: string; sub: string; to: string };
+
+const PAGE_INDEX: { title: string; sub: string; to: string; keywords: string }[] = [
+  { title: "Dashboard", sub: "Overview & alerts", to: "/dashboard", keywords: "dashboard home overview alerts widgets" },
+  { title: "Project Ledgers", sub: "Portfolio of active projects", to: "/ledgers", keywords: "ledgers projects portfolio plots" },
+  { title: "Office Expenses", sub: "Overhead expense register", to: "/office-expenses", keywords: "office expenses overhead utilities rent fuel" },
+  { title: "Smart Quotations", sub: "AI-powered estimation", to: "/quotations", keywords: "quotations quotes estimate naqsha" },
+  { title: "Vendor Receipts", sub: "Receipts archive", to: "/receipts", keywords: "vendor receipts invoices bills" },
+];
+
 export function AppShell({
   title,
   subtitle,
@@ -53,6 +67,61 @@ export function AppShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement | null>(null);
+  const [today, setToday] = useState<string>("");
+
+  useEffect(() => {
+    const d = new Date();
+    setToday(
+      d.toLocaleDateString("en-PK", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+      }),
+    );
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (!searchRef.current) return;
+      if (!searchRef.current.contains(e.target as Node)) setSearchOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  const hits = useMemo<SearchHit[]>(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const projectHits: SearchHit[] = projects
+      .filter(
+        (p) =>
+          p.plot.toLowerCase().includes(q) ||
+          p.client.toLowerCase().includes(q) ||
+          p.phase.toLowerCase().includes(q) ||
+          p.size.toLowerCase().includes(q),
+      )
+      .slice(0, 6)
+      .map((p) => ({
+        kind: "project",
+        id: p.id,
+        title: `${p.plot} — ${p.size}`,
+        sub: `${p.client} · ${p.phase}`,
+        to: `/projects/${p.id}`,
+      }));
+    const pageHits: SearchHit[] = PAGE_INDEX.filter((p) =>
+      (p.title + " " + p.keywords).toLowerCase().includes(q),
+    ).map((p) => ({ kind: "page", title: p.title, sub: p.sub, to: p.to }));
+    return [...projectHits, ...pageHits].slice(0, 8);
+  }, [query]);
+
+  const goToHit = (h: SearchHit) => {
+    setSearchOpen(false);
+    setQuery("");
+    navigate({ to: h.to });
+  };
 
   const isActive = (item: NavItem) => {
     if (item.to === "/ledgers" && (pathname === "/ledgers" || pathname.startsWith("/projects"))) return true;
@@ -64,6 +133,65 @@ export function AppShell({
     if (typeof window !== "undefined") window.localStorage.removeItem("sre_auth");
     navigate({ to: "/" });
   };
+
+  const SearchBox = ({ className = "" }: { className?: string }) => (
+    <div ref={searchRef} className={`relative ${className}`}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (hits[0]) goToHit(hits[0]);
+        }}
+      >
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setSearchOpen(true);
+          }}
+          onFocus={() => setSearchOpen(true)}
+          placeholder="Search plots, clients, pages…"
+          className="h-10 w-[280px] pl-9 pr-9"
+        />
+        {query ? (
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium text-muted-foreground">
+            <CornerDownLeft className="inline h-3.5 w-3.5" />
+          </span>
+        ) : null}
+      </form>
+      {searchOpen && query ? (
+        <div className="absolute right-0 top-full z-50 mt-2 w-[360px] overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+          {hits.length === 0 ? (
+            <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+              No matches for "{query}"
+            </div>
+          ) : (
+            <ul className="max-h-80 overflow-auto py-1">
+              {hits.map((h, i) => (
+                <li key={`${h.kind}-${i}`}>
+                  <button
+                    onClick={() => goToHit(h)}
+                    className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent"
+                  >
+                    <div className={`mt-0.5 rounded-md p-1.5 ${h.kind === "project" ? "bg-[color:var(--sre-blue)]/10 text-[color:var(--sre-blue)]" : "bg-secondary text-muted-foreground"}`}>
+                      {h.kind === "project" ? <HardHat className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-foreground">{h.title}</div>
+                      <div className="truncate text-xs text-muted-foreground">{h.sub}</div>
+                    </div>
+                    <span className="ml-auto self-center text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {h.kind}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
 
   const SidebarContents = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
@@ -144,22 +272,24 @@ export function AppShell({
             </div>
 
             <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-              <div className="relative hidden xl:block">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search projects, plots, materials…"
-                  className="h-10 w-[280px] pl-9"
-                />
-              </div>
-              <Button variant="ghost" size="icon" aria-label="Search" className="xl:hidden">
+              <SearchBox className="hidden xl:block" />
+              <Button variant="ghost" size="icon" aria-label="Search" className="xl:hidden" onClick={() => setMobileOpen(false)}>
                 <Search className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon" aria-label="Notifications" className="hidden sm:inline-flex">
-                <Bell className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" aria-label="Settings" className="hidden sm:inline-flex">
-                <Settings className="h-5 w-5" />
-              </Button>
+              <div className="hidden items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 py-1.5 md:flex">
+                <CalendarClock className="h-4 w-4 text-[color:var(--sre-blue)]" />
+                <div className="leading-tight">
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Site day</div>
+                  <div className="text-xs font-semibold text-foreground">{today || "—"}</div>
+                </div>
+              </div>
+              <div className="hidden items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 lg:flex">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                <span className="text-xs font-semibold text-emerald-700">All sites live</span>
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 rounded-lg border border-border bg-card px-2 py-1.5 text-left transition-colors hover:bg-secondary sm:gap-3 sm:px-3">
