@@ -1,22 +1,18 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import {
   ArrowLeft,
-  ArrowDownRight,
-  ArrowUpRight,
   CheckCircle2,
   CircleDot,
   Clock3,
   FileUp,
   Layers,
-  Minus,
   Plus,
   Pencil,
-  Eye,
-  Paperclip,
-  CalendarDays,
   Wallet,
   HardHat,
   Phone,
+  Users,
+  ArrowUpRight,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
@@ -32,10 +28,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fmtPKR, projects } from "@/lib/projects-data";
-import { AddLedgerEntryDialog } from "@/components/dialogs/add-ledger-entry-dialog";
-import { LogDailyEntryDialog } from "@/components/dialogs/log-daily-entry-dialog";
-import { AddContractorDialog } from "@/components/dialogs/add-contractor-dialog";
-import { EditRecordDialog, type EditField, type EditValues } from "@/components/dialogs/edit-record-dialog";
+import { AddRecordDialog } from "@/components/dialogs/add-record-dialog";
+import { EditRecordDialog, type EditValues } from "@/components/dialogs/edit-record-dialog";
 
 export const Route = createFileRoute("/projects/$projectId")({
   loader: ({ params }) => {
@@ -65,80 +59,99 @@ export const Route = createFileRoute("/projects/$projectId")({
   ),
 });
 
-type LedgerRow = {
+type MaterialCategory = "bricks" | "cement" | "steel" | "sandcrush" | "labour" | "other";
+const MATERIAL_CATEGORY_OPTIONS = ["bricks", "cement", "steel", "sandcrush", "labour", "other"] as const;
+
+type Procurement = {
+  id: string;
+  date: string;
   item: string;
-  required: number;
-  procured: number;
+  category: MaterialCategory;
+  quantity: number;
   unit: string;
   rate: number;
-  category: "bricks" | "cement" | "steel" | "sandcrush" | "labour";
+  vendor: string;
 };
 
-const INITIAL_LEDGER: LedgerRow[] = [
-  { item: "Awwal Bricks", required: 42000, procured: 38500, unit: "Pcs", rate: 22, category: "bricks" },
-  { item: "Doyam Bricks", required: 6000, procured: 6000, unit: "Pcs", rate: 16, category: "bricks" },
-  { item: "Lucky Cement (OPC)", required: 380, procured: 360, unit: "Bags", rate: 1340, category: "cement" },
-  { item: "Maple Leaf SRC", required: 80, procured: 75, unit: "Bags", rate: 1410, category: "cement" },
-  { item: "Elephant White Cement", required: 20, procured: 20, unit: "Bags", rate: 2650, category: "cement" },
-  { item: "Grade-60 Serya 12mm", required: 1.8, procured: 1.9, unit: "Tons", rate: 305000, category: "steel" },
-  { item: "Grade-60 Serya 16mm", required: 1.4, procured: 1.5, unit: "Tons", rate: 308000, category: "steel" },
-  { item: "Chenab Sand", required: 28, procured: 26, unit: "Trolly", rate: 12500, category: "sandcrush" },
-  { item: "Sargodha Bajri", required: 18, procured: 18, unit: "Trolly", rate: 18500, category: "sandcrush" },
-  { item: "Margalla Crush", required: 14, procured: 12, unit: "Trolly", rate: 21000, category: "sandcrush" },
-  { item: "Labour — Mason", required: 320, procured: 286, unit: "Days", rate: 2200, category: "labour" },
-  { item: "Labour — Helper", required: 410, procured: 372, unit: "Days", rate: 1400, category: "labour" },
+const INITIAL_PROCUREMENT: Procurement[] = [
+  { id: "p1", date: "2026-06-21", item: "Lucky Cement (OPC)", category: "cement", quantity: 50, unit: "Bags", rate: 1340, vendor: "Bilal Traders" },
+  { id: "p2", date: "2026-06-20", item: "Grade-60 Serya 12mm", category: "steel", quantity: 1.2, unit: "Tons", rate: 305000, vendor: "Ittefaq Steel" },
+  { id: "p3", date: "2026-06-19", item: "Chenab Sand", category: "sandcrush", quantity: 4, unit: "Trolly", rate: 12500, vendor: "Chenab Suppliers" },
+  { id: "p4", date: "2026-06-18", item: "Awwal Bricks", category: "bricks", quantity: 12000, unit: "Pcs", rate: 22, vendor: "Sialkot Brick Kiln" },
+  { id: "p5", date: "2026-06-18", item: "Labour — Mason", category: "labour", quantity: 20, unit: "Days", rate: 2200, vendor: "Thekedar Yousaf" },
+  { id: "p6", date: "2026-06-15", item: "Margalla Crush", category: "sandcrush", quantity: 6, unit: "Trolly", rate: 21000, vendor: "Margalla Traders" },
 ];
 
-const CATEGORY_TABS = [
+const MATERIAL_TABS = [
   { id: "all", label: "All (Overview)" },
   { id: "bricks", label: "Bricks" },
   { id: "cement", label: "Cement" },
   { id: "steel", label: "Steel (Serya)" },
   { id: "sandcrush", label: "Sand & Crush" },
   { id: "labour", label: "Labour" },
+  { id: "other", label: "Other" },
 ] as const;
 
-type DailyEntry = {
-  date: string;
-  category: "Material Received" | "Labour Logged" | "Site Note" | "Payment";
-  details: string;
-  addedBy: string;
-  vendor: string;
-  receipt: boolean;
-};
+type ContractorRole =
+  | "Thekadar"
+  | "Plumber"
+  | "Electrician"
+  | "Designer (Painter)"
+  | "Ceiling / Palling";
 
-const INITIAL_DAILY: DailyEntry[] = [
-  { date: "21 Jun 2026", category: "Material Received", details: "50 bags Lucky Cement (OPC)", addedBy: "A. Khan", vendor: "Bilal Traders", receipt: true },
-  { date: "21 Jun 2026", category: "Labour Logged", details: "8 Masons + 12 Helpers (1st floor slab)", addedBy: "Site Foreman", vendor: "Thekedar Yousaf", receipt: false },
-  { date: "20 Jun 2026", category: "Material Received", details: "1.2 Ton Grade-60 Serya 12mm", addedBy: "A. Khan", vendor: "Ittefaq Steel", receipt: true },
-  { date: "20 Jun 2026", category: "Payment", details: "Advance PKR 250,000 to Thekedar Yousaf", addedBy: "Accounts", vendor: "Thekedar Yousaf", receipt: true },
-  { date: "19 Jun 2026", category: "Material Received", details: "4 Trolly Chenab Sand", addedBy: "Site Foreman", vendor: "Chenab Suppliers", receipt: true },
-  { date: "19 Jun 2026", category: "Site Note", details: "Curing started — column line C", addedBy: "Engr. Tahir", vendor: "—", receipt: false },
-  { date: "18 Jun 2026", category: "Material Received", details: "12,000 Awwal Bricks", addedBy: "A. Khan", vendor: "Sialkot Brick Kiln", receipt: true },
-  { date: "18 Jun 2026", category: "Labour Logged", details: "6 Masons (boundary wall)", addedBy: "Site Foreman", vendor: "Thekedar Imran", receipt: false },
+const CONTRACTOR_ROLES: ContractorRole[] = [
+  "Thekadar",
+  "Plumber",
+  "Electrician",
+  "Designer (Painter)",
+  "Ceiling / Palling",
 ];
 
 type Contractor = {
   id: string;
-  role:
-    | "Thekadar"
-    | "Plumber"
-    | "Electrician"
-    | "Designer (Painter)"
-    | "Ceiling / Palling";
+  role: ContractorRole;
   name: string;
   contact: string;
   agreedAmount: number;
-  paid: number;
   status: "Active" | "Completed" | "On hold";
 };
 
 const INITIAL_CONTRACTORS: Contractor[] = [
-  { id: "c1", role: "Thekadar", name: "Yousaf Bhatti", contact: "0300-1234567", agreedAmount: 1250000, paid: 780000, status: "Active" },
-  { id: "c2", role: "Plumber", name: "Rashid & Sons", contact: "0321-7654321", agreedAmount: 185000, paid: 90000, status: "Active" },
-  { id: "c3", role: "Electrician", name: "Sialkot Electric Works", contact: "0302-2233445", agreedAmount: 240000, paid: 60000, status: "Active" },
-  { id: "c4", role: "Designer (Painter)", name: "Master Aslam", contact: "0345-9988776", agreedAmount: 320000, paid: 0, status: "On hold" },
-  { id: "c5", role: "Ceiling / Palling", name: "Kamran Ceiling House", contact: "0333-1122334", agreedAmount: 210000, paid: 0, status: "On hold" },
+  { id: "c1", role: "Thekadar", name: "Yousaf Bhatti", contact: "0300-1234567", agreedAmount: 1250000, status: "Active" },
+  { id: "c2", role: "Plumber", name: "Rashid & Sons", contact: "0321-7654321", agreedAmount: 185000, status: "Active" },
+  { id: "c3", role: "Electrician", name: "Sialkot Electric Works", contact: "0302-2233445", agreedAmount: 240000, status: "Active" },
+  { id: "c4", role: "Designer (Painter)", name: "Master Aslam", contact: "0345-9988776", agreedAmount: 320000, status: "On hold" },
+  { id: "c5", role: "Ceiling / Palling", name: "Kamran Ceiling House", contact: "0333-1122334", agreedAmount: 210000, status: "On hold" },
+];
+
+type ContractorPayment = {
+  id: string;
+  contractorId: string;
+  date: string;
+  amount: number;
+  note: string;
+};
+
+const INITIAL_CONTRACTOR_PAYMENTS: ContractorPayment[] = [
+  { id: "cp1", contractorId: "c1", date: "2026-03-16", amount: 300000, note: "Advance on start" },
+  { id: "cp2", contractorId: "c1", date: "2026-04-28", amount: 280000, note: "Grey slab milestone" },
+  { id: "cp3", contractorId: "c1", date: "2026-06-10", amount: 200000, note: "1st floor slab" },
+  { id: "cp4", contractorId: "c2", date: "2026-05-08", amount: 90000, note: "Rough plumbing" },
+  { id: "cp5", contractorId: "c3", date: "2026-05-20", amount: 60000, note: "Conduit rough-in" },
+];
+
+type CustomerPayment = {
+  id: string;
+  date: string;
+  amount: number;
+  method: "Cash" | "Bank Transfer" | "Cheque";
+  note: string;
+};
+
+const INITIAL_CUSTOMER_PAYMENTS: CustomerPayment[] = [
+  { id: "op1", date: "2026-03-14", amount: 3000000, method: "Bank Transfer", note: "Booking / start advance" },
+  { id: "op2", date: "2026-04-30", amount: 1000000, method: "Cheque", note: "Grey structure milestone" },
+  { id: "op3", date: "2026-06-05", amount: 500000, method: "Cash", note: "1st floor slab" },
 ];
 
 function ContractorStatusBadge({ status }: { status: Contractor["status"] }) {
@@ -150,45 +163,6 @@ function ContractorStatusBadge({ status }: { status: Contractor["status"] }) {
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${map[status]}`}>
       {status}
-    </span>
-  );
-}
-
-function CategoryBadge({ category }: { category: DailyEntry["category"] }) {
-  const map: Record<DailyEntry["category"], string> = {
-    "Material Received": "bg-[color:var(--sre-blue)]/10 text-[color:var(--sre-blue)]",
-    "Labour Logged": "bg-emerald-50 text-emerald-700",
-    "Site Note": "bg-amber-50 text-amber-700",
-    Payment: "bg-destructive/10 text-destructive",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${map[category]}`}>
-      {category}
-    </span>
-  );
-}
-
-function VarianceCell({ required, procured }: { required: number; procured: number }) {
-  const diff = procured - required;
-  const pct = required === 0 ? 0 : (diff / required) * 100;
-  const onTrack = Math.abs(pct) < 2;
-  const over = pct > 0;
-  if (onTrack) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-[color:var(--sre-blue)]">
-        <Minus className="h-3 w-3" /> On track
-      </span>
-    );
-  }
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-        over ? "bg-destructive/10 text-destructive" : "bg-accent text-[color:var(--sre-blue)]"
-      }`}
-    >
-      {over ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-      {over ? "+" : ""}
-      {pct.toFixed(1)}%
     </span>
   );
 }
@@ -205,46 +179,62 @@ function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
+const uid = () => Math.random().toString(36).slice(2, 10);
+const today = () => new Date().toISOString().slice(0, 10);
+
 function ProjectLedger() {
   const { project } = Route.useLoaderData();
-  const [activeTab, setActiveTab] = useState<string>("all");
-  const [ledger, setLedger] = useState<LedgerRow[]>(INITIAL_LEDGER);
+  const [materialTab, setMaterialTab] = useState<string>("all");
+  const [contractorTab, setContractorTab] = useState<string>(CONTRACTOR_ROLES[0]);
+  const [procurement, setProcurement] = useState<Procurement[]>(INITIAL_PROCUREMENT);
   const [contractors, setContractors] = useState<Contractor[]>(INITIAL_CONTRACTORS);
-  const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>(INITIAL_DAILY);
+  const [contractorPayments, setContractorPayments] = useState<ContractorPayment[]>(INITIAL_CONTRACTOR_PAYMENTS);
+  const [customerPayments, setCustomerPayments] = useState<CustomerPayment[]>(INITIAL_CUSTOMER_PAYMENTS);
 
-  const [editLedgerIdx, setEditLedgerIdx] = useState<number | null>(null);
+  const [editProcurementIdx, setEditProcurementIdx] = useState<number | null>(null);
   const [editContractorIdx, setEditContractorIdx] = useState<number | null>(null);
-  const [editDailyIdx, setEditDailyIdx] = useState<number | null>(null);
+  const [editContractorPaymentIdx, setEditContractorPaymentIdx] = useState<number | null>(null);
+  const [editCustomerPaymentIdx, setEditCustomerPaymentIdx] = useState<number | null>(null);
   const [markedComplete, setMarkedComplete] = useState(false);
 
-  const totalSpent = ledger.reduce((s, r) => s + r.procured * r.rate, 0);
-  const totalEstimate = ledger.reduce((s, r) => s + r.required * r.rate, 0);
-  const filtered = activeTab === "all" ? ledger : ledger.filter((r) => r.category === activeTab);
-  const filteredTotal = filtered.reduce((s, r) => s + r.procured * r.rate, 0);
-  const qtyByUnit = filtered.reduce<Record<string, number>>((acc, r) => {
-    acc[r.unit] = (acc[r.unit] ?? 0) + r.procured;
+  const contractPrice = project.budget;
+  const customerReceived = customerPayments.reduce((s, p) => s + p.amount, 0);
+  const customerBalance = Math.max(0, contractPrice - customerReceived);
+
+  const totalSpent = procurement.reduce((s, r) => s + r.quantity * r.rate, 0);
+  const filteredMaterial = materialTab === "all" ? procurement : procurement.filter((r) => r.category === materialTab);
+  const filteredTotal = filteredMaterial.reduce((s, r) => s + r.quantity * r.rate, 0);
+  const qtyByItem = filteredMaterial.reduce<Record<string, { qty: number; unit: string }>>((acc, r) => {
+    const key = `${r.item} (${r.unit})`;
+    acc[key] = acc[key] ?? { qty: 0, unit: r.unit };
+    acc[key].qty += r.quantity;
     return acc;
   }, {});
-  const contractorsTotal = contractors.reduce((s, c) => s + c.agreedAmount, 0);
-  const contractorsPaid = contractors.reduce((s, c) => s + c.paid, 0);
 
-  // Completion rule checks
+  const paidByContractor = (id: string) =>
+    contractorPayments.filter((p) => p.contractorId === id).reduce((s, p) => s + p.amount, 0);
+
+  const contractorsInTab = contractors.filter((c) => c.role === contractorTab);
+  const contractorsTotal = contractors.reduce((s, c) => s + c.agreedAmount, 0);
+  const contractorsPaid = contractors.reduce((s, c) => s + paidByContractor(c.id), 0);
+
+  // Completion checks (rule-based)
   const checks = {
     schedule: {
       ok: project.dayCurrent >= project.dayTotal,
       label: `Timeline reached (Day ${project.dayCurrent} / ${project.dayTotal})`,
     },
-    procurement: {
-      ok: ledger.every((r) => r.procured >= r.required),
-      label: `All ${ledger.length} ledger items fully procured`,
-    },
     payments: {
-      ok: contractors.every((c) => c.paid >= c.agreedAmount),
+      ok: contractors.every((c) => paidByContractor(c.id) >= c.agreedAmount),
       label: `All contractor balances cleared`,
     },
     holds: {
       ok: contractors.every((c) => c.status !== "On hold"),
       label: `No contractor on hold`,
+    },
+    customer: {
+      ok: customerReceived >= contractPrice,
+      label: `Customer fully paid (PKR ${fmtPKR(customerReceived)} / ${fmtPKR(contractPrice)})`,
     },
   };
   const readyToClose = Object.values(checks).every((c) => c.ok);
@@ -319,6 +309,7 @@ function ProjectLedger() {
           </div>
         )}
 
+        {/* HEADER */}
         <div className="rounded-xl border border-border bg-card p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -342,40 +333,147 @@ function ProjectLedger() {
               <Button variant="outline" className="gap-1.5">
                 <FileUp className="h-4 w-4" /> Export Ledger
               </Button>
-              <AddLedgerEntryDialog
-                trigger={
-                  <Button className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
-                    <Plus className="h-4 w-4" /> Add Budget Line
-                  </Button>
-                }
-              />
             </div>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatTile icon={<Wallet className="h-4 w-4" />} label="Spent to date" value={`PKR ${fmtPKR(totalSpent)}`} />
-            <StatTile icon={<Layers className="h-4 w-4" />} label="Estimated total" value={`PKR ${fmtPKR(totalEstimate)}`} />
-            <StatTile icon={<ArrowUpRight className="h-4 w-4" />} label="Budget used" value={`${((totalSpent / totalEstimate) * 100).toFixed(1)}%`} />
+            <StatTile icon={<Wallet className="h-4 w-4" />} label="Spent on materials" value={`PKR ${fmtPKR(totalSpent)}`} />
+            <StatTile icon={<HardHat className="h-4 w-4" />} label="Paid to contractors" value={`PKR ${fmtPKR(contractorsPaid)}`} />
+            <StatTile icon={<Users className="h-4 w-4" />} label="Received from customer" value={`PKR ${fmtPKR(customerReceived)}`} />
             <StatTile icon={<Clock3 className="h-4 w-4" />} label="On schedule" value={`Day ${project.dayCurrent} / ${project.dayTotal}`} />
           </div>
         </div>
 
+        {/* CUSTOMER PAYMENTS */}
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-[color:var(--sre-blue)]/10 p-2 text-[color:var(--sre-blue)]">
+                <Users className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Customer Payments</h3>
+                <p className="text-xs text-muted-foreground">
+                  Payments received from the project owner — logged in instalments over the project timeline
+                </p>
+              </div>
+            </div>
+            <AddRecordDialog
+              trigger={
+                <Button size="sm" className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
+                  <Plus className="h-4 w-4" /> Record Payment
+                </Button>
+              }
+              title="Record Customer Payment"
+              description="Log an instalment received from the project owner."
+              submitLabel="Record Payment"
+              defaults={{ date: today(), amount: 0, method: "Bank Transfer", note: "" }}
+              fields={[
+                { key: "date", label: "Date", type: "date", required: true },
+                { key: "amount", label: "Amount (PKR)", type: "number", required: true },
+                { key: "method", label: "Method", type: "select", options: ["Cash", "Bank Transfer", "Cheque"] as const, required: true },
+                { key: "note", label: "Note", type: "text", placeholder: "e.g. Grey structure milestone" },
+              ]}
+              onSubmit={(v) =>
+                setCustomerPayments((prev) => [
+                  { id: uid(), date: String(v.date), amount: Number(v.amount) || 0, method: v.method as CustomerPayment["method"], note: String(v.note ?? "") },
+                  ...prev,
+                ])
+              }
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4 border-b border-border bg-secondary/30 px-6 py-4 md:grid-cols-4">
+            <StatTile icon={<Layers className="h-4 w-4" />} label="Contract price" value={`PKR ${fmtPKR(contractPrice)}`} />
+            <StatTile icon={<ArrowUpRight className="h-4 w-4" />} label="Received to date" value={`PKR ${fmtPKR(customerReceived)}`} />
+            <StatTile icon={<Wallet className="h-4 w-4" />} label="Balance due" value={`PKR ${fmtPKR(customerBalance)}`} />
+            <StatTile icon={<CheckCircle2 className="h-4 w-4" />} label="% Received" value={`${((customerReceived / contractPrice) * 100).toFixed(1)}%`} />
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-secondary/60 hover:bg-secondary/60">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Date</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Amount (PKR)</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Method</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Note</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customerPayments.map((p, i) => (
+                  <TableRow key={p.id} className="border-border transition-colors hover:bg-accent/40">
+                    <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{p.date}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(p.amount)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.method}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.note || "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditCustomerPaymentIdx(i)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {customerPayments.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                      No customer payments recorded yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        {/* MATERIAL LEDGER */}
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
             <div>
               <h3 className="text-base font-semibold text-foreground">Material &amp; Labour Ledger</h3>
               <p className="text-xs text-muted-foreground">
-                Master budget lines — sets Required qty &amp; rate. Procured qty is driven by the Daily Site Log below.
+                Every material &amp; labour procurement — with date, vendor and quantity
               </p>
             </div>
-            <Button variant="ghost" size="sm" className="text-[color:var(--sre-blue)]">
-              View full history
-            </Button>
+            <AddRecordDialog
+              trigger={
+                <Button size="sm" className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
+                  <Plus className="h-4 w-4" /> Add Procurement
+                </Button>
+              }
+              title="Add Procurement Entry"
+              description="Log a material or labour purchase against this project."
+              submitLabel="Add Entry"
+              defaults={{ date: today(), item: "", category: "cement", quantity: 0, unit: "Bags", rate: 0, vendor: "" }}
+              fields={[
+                { key: "date", label: "Date", type: "date", required: true },
+                { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true },
+                { key: "item", label: "Item", type: "text", required: true, placeholder: "e.g. Lucky Cement (OPC)" },
+                { key: "vendor", label: "Vendor / Supplier", type: "text", required: true, placeholder: "e.g. Bilal Traders" },
+                { key: "quantity", label: "Quantity", type: "number", required: true },
+                { key: "unit", label: "Unit", type: "text", required: true, placeholder: "Bags / Pcs / Tons / Trolly / Days" },
+                { key: "rate", label: "Rate per Unit (PKR)", type: "number", required: true },
+              ]}
+              onSubmit={(v) =>
+                setProcurement((prev) => [
+                  {
+                    id: uid(),
+                    date: String(v.date),
+                    item: String(v.item),
+                    category: v.category as MaterialCategory,
+                    quantity: Number(v.quantity) || 0,
+                    unit: String(v.unit),
+                    rate: Number(v.rate) || 0,
+                    vendor: String(v.vendor),
+                  },
+                  ...prev,
+                ])
+              }
+            />
           </div>
           <div className="border-b border-border px-6 py-3">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={materialTab} onValueChange={setMaterialTab}>
               <TabsList className="flex h-auto flex-wrap gap-1 bg-secondary/60 p-1">
-                {CATEGORY_TABS.map((t) => (
+                {MATERIAL_TABS.map((t) => (
                   <TabsTrigger
                     key={t.id}
                     value={t.id}
@@ -391,45 +489,40 @@ function ProjectLedger() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-secondary/60 hover:bg-secondary/60">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Date</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Item</TableHead>
-                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Required</TableHead>
-                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Procured</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Vendor</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Quantity</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Unit</TableHead>
-                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Avg Rate (PKR)</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Rate (PKR)</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Total (PKR)</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Variance</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((row) => {
-                  const rowIdx = ledger.indexOf(row);
+                {filteredMaterial.map((row) => {
+                  const rowIdx = procurement.indexOf(row);
                   return (
-                  <TableRow key={row.item} className="border-border transition-colors hover:bg-accent/40">
-                    <TableCell className="font-medium text-foreground">{row.item}</TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">{fmtPKR(row.required)}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(row.procured)}</TableCell>
-                    <TableCell className="text-muted-foreground">{row.unit}</TableCell>
-                    <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(row.rate)}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(row.procured * row.rate)}</TableCell>
-                    <TableCell><VarianceCell required={row.required} procured={row.procured} /></TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit row" onClick={() => setEditLedgerIdx(rowIdx)}>
+                    <TableRow key={row.id} className="border-border transition-colors hover:bg-accent/40">
+                      <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{row.date}</TableCell>
+                      <TableCell className="font-medium text-foreground">{row.item}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{row.vendor}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(row.quantity)}</TableCell>
+                      <TableCell className="text-muted-foreground">{row.unit}</TableCell>
+                      <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(row.rate)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(row.quantity * row.rate)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit entry" onClick={() => setEditProcurementIdx(rowIdx)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="View details">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-                {filtered.length === 0 && (
+                {filteredMaterial.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
-                      No items in this category yet.
+                      No procurement entries in this category yet.
                     </TableCell>
                   </TableRow>
                 )}
@@ -439,22 +532,27 @@ function ProjectLedger() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/40 px-6 py-3 text-sm">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <span className="text-muted-foreground">
-                {filtered.length} line items{activeTab !== "all" && ` · filtered`}
+                {filteredMaterial.length} entries{materialTab !== "all" && ` · filtered`}
               </span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-foreground">
-                <span className="text-muted-foreground">Total Qty:</span>{" "}
-                {Object.entries(qtyByUnit)
-                  .map(([unit, qty]) => `${fmtPKR(qty)} ${unit}`)
-                  .join(" · ")}
-              </span>
+              {Object.keys(qtyByItem).length > 0 && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-foreground">
+                    <span className="text-muted-foreground">Total Qty:</span>{" "}
+                    {Object.entries(qtyByItem)
+                      .map(([k, v]) => `${fmtPKR(v.qty)} ${v.unit} ${k.replace(` (${v.unit})`, "")}`)
+                      .join(" · ")}
+                  </span>
+                </>
+              )}
             </div>
             <span className="font-semibold text-foreground">
-              {activeTab === "all" ? "Running total" : "Subtotal"}: PKR {fmtPKR(activeTab === "all" ? totalSpent : filteredTotal)}
+              {materialTab === "all" ? "Grand total" : "Subtotal"}: PKR {fmtPKR(materialTab === "all" ? totalSpent : filteredTotal)}
             </span>
           </div>
         </div>
 
+        {/* CONTRACTORS */}
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
             <div className="flex items-start gap-3">
@@ -464,67 +562,193 @@ function ProjectLedger() {
               <div>
                 <h3 className="text-base font-semibold text-foreground">Contractors &amp; Trades</h3>
                 <p className="text-xs text-muted-foreground">
-                  Thekadar, plumber, electrician, designer &amp; ceiling — scoped to this project
+                  Manage each trade separately. Log payments with dates against the agreed amount.
                 </p>
               </div>
             </div>
-            <AddContractorDialog
-              trigger={
-                <Button size="sm" className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
-                  <Plus className="h-4 w-4" /> Add Contractor
-                </Button>
-              }
-            />
+            <div className="flex gap-2">
+              <AddRecordDialog
+                trigger={
+                  <Button size="sm" variant="outline" className="gap-1.5">
+                    <Plus className="h-4 w-4" /> Add Contractor
+                  </Button>
+                }
+                title="Add Contractor"
+                description="Assign a trade contractor with an agreed amount."
+                submitLabel="Add Contractor"
+                defaults={{ role: contractorTab, name: "", contact: "", agreedAmount: 0, status: "Active" }}
+                fields={[
+                  { key: "role", label: "Role / Trade", type: "select", options: CONTRACTOR_ROLES, required: true },
+                  { key: "status", label: "Status", type: "select", options: ["Active", "On hold", "Completed"] as const, required: true },
+                  { key: "name", label: "Contractor Name", type: "text", required: true },
+                  { key: "contact", label: "Contact Number", type: "tel", required: true },
+                  { key: "agreedAmount", label: "Agreed Amount (PKR)", type: "number", required: true },
+                ]}
+                onSubmit={(v) =>
+                  setContractors((prev) => [
+                    ...prev,
+                    {
+                      id: uid(),
+                      role: v.role as ContractorRole,
+                      name: String(v.name),
+                      contact: String(v.contact),
+                      agreedAmount: Number(v.agreedAmount) || 0,
+                      status: v.status as Contractor["status"],
+                    },
+                  ])
+                }
+              />
+            </div>
           </div>
+
+          <div className="border-b border-border px-6 py-3">
+            <Tabs value={contractorTab} onValueChange={setContractorTab}>
+              <TabsList className="flex h-auto flex-wrap gap-1 bg-secondary/60 p-1">
+                {CONTRACTOR_ROLES.map((r) => {
+                  const count = contractors.filter((c) => c.role === r).length;
+                  return (
+                    <TabsTrigger
+                      key={r}
+                      value={r}
+                      className="data-[state=active]:bg-card data-[state=active]:text-[color:var(--sre-blue)] data-[state=active]:shadow-sm text-xs font-medium"
+                    >
+                      {r}
+                      <span className="ml-1.5 rounded-full bg-foreground/10 px-1.5 py-0.5 text-[10px] font-semibold">
+                        {count}
+                      </span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+          </div>
+
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-secondary/60 hover:bg-secondary/60">
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Role</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Name</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Contact</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Agreed (PKR)</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Paid (PKR)</TableHead>
-                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Balance (PKR)</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Remaining (PKR)</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Status</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contractors.map((c, idx) => (
-                  <TableRow key={c.id} className="border-border transition-colors hover:bg-accent/40">
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full bg-[color:var(--sre-blue)]/10 px-2.5 py-1 text-xs font-medium text-[color:var(--sre-blue)]">
-                        {c.role}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-medium text-foreground">{c.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5" /> {c.contact}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(c.agreedAmount)}</TableCell>
-                    <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(c.paid)}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(c.agreedAmount - c.paid)}</TableCell>
-                    <TableCell><ContractorStatusBadge status={c.status} /></TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorIdx(idx)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="View details">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {contractorsInTab.map((c) => {
+                  const paid = paidByContractor(c.id);
+                  const idx = contractors.indexOf(c);
+                  return (
+                    <TableRow key={c.id} className="border-border transition-colors hover:bg-accent/40">
+                      <TableCell className="font-medium text-foreground">{c.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Phone className="h-3.5 w-3.5" /> {c.contact}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(c.agreedAmount)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(paid)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, c.agreedAmount - paid))}</TableCell>
+                      <TableCell><ContractorStatusBadge status={c.status} /></TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <AddRecordDialog
+                            trigger={
+                              <Button variant="ghost" size="sm" className="h-8 gap-1 text-[color:var(--sre-blue)] hover:bg-[color:var(--sre-blue)]/10">
+                                <Plus className="h-3.5 w-3.5" /> Payment
+                              </Button>
+                            }
+                            title={`Record Payment — ${c.name}`}
+                            description={`Agreed PKR ${fmtPKR(c.agreedAmount)} · Already paid PKR ${fmtPKR(paid)}`}
+                            submitLabel="Record Payment"
+                            defaults={{ date: today(), amount: 0, note: "" }}
+                            fields={[
+                              { key: "date", label: "Payment Date", type: "date", required: true },
+                              { key: "amount", label: "Amount (PKR)", type: "number", required: true },
+                              { key: "note", label: "Note (optional)", type: "text", placeholder: "e.g. Slab milestone" },
+                            ]}
+                            onSubmit={(v) =>
+                              setContractorPayments((prev) => [
+                                { id: uid(), contractorId: c.id, date: String(v.date), amount: Number(v.amount) || 0, note: String(v.note ?? "") },
+                                ...prev,
+                              ])
+                            }
+                          />
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorIdx(idx)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {contractorsInTab.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                      No {contractorTab.toLowerCase()} added yet.
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </div>
+
+          {/* Payment history for this trade */}
+          {contractorsInTab.length > 0 && (
+            <div className="border-t border-border">
+              <div className="border-b border-border bg-secondary/30 px-6 py-2.5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Payment History — {contractorTab}
+                </h4>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-secondary/40 hover:bg-secondary/40">
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Date</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Contractor</TableHead>
+                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Amount (PKR)</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Note</TableHead>
+                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contractorPayments
+                      .filter((p) => contractorsInTab.some((c) => c.id === p.contractorId))
+                      .map((p) => {
+                        const c = contractors.find((x) => x.id === p.contractorId);
+                        const idx = contractorPayments.indexOf(p);
+                        return (
+                          <TableRow key={p.id} className="border-border">
+                            <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{p.date}</TableCell>
+                            <TableCell className="text-sm text-foreground">{c?.name ?? "—"}</TableCell>
+                            <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(p.amount)}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{p.note || "—"}</TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditContractorPaymentIdx(idx)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    {contractorPayments.filter((p) => contractorsInTab.some((c) => c.id === p.contractorId)).length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                          No payments recorded for this trade yet.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/40 px-6 py-3 text-sm">
-            <span className="text-muted-foreground">{contractors.length} contractors</span>
+            <span className="text-muted-foreground">{contractors.length} contractors total</span>
             <span className="font-semibold text-foreground">
               Paid PKR {fmtPKR(contractorsPaid)} / {fmtPKR(contractorsTotal)}
               <span className="ml-2 font-normal text-muted-foreground">
@@ -533,99 +757,26 @@ function ProjectLedger() {
             </span>
           </div>
         </div>
-
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-[color:var(--sre-blue)]/10 p-2 text-[color:var(--sre-blue)]">
-                <CalendarDays className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-foreground">Daily Site Log &amp; Entries</h3>
-                <p className="text-xs text-muted-foreground">
-                  Chronological record of materials received, labour logged, payments and site notes
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <FileUp className="h-4 w-4" /> Attach Receipt
-              </Button>
-              <LogDailyEntryDialog
-                trigger={
-                  <Button size="sm" className="gap-1.5 bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
-                    <Plus className="h-4 w-4" /> Log Entry
-                  </Button>
-                }
-              />
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-secondary/60 hover:bg-secondary/60">
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Date</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Category</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Item Details</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Added By</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Vendor / Thekedar</TableHead>
-                  <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-foreground">Receipt</TableHead>
-                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dailyEntries.map((e, i) => (
-                  <TableRow key={i} className="border-border transition-colors hover:bg-accent/40">
-                    <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{e.date}</TableCell>
-                    <TableCell><CategoryBadge category={e.category} /></TableCell>
-                    <TableCell className="text-sm text-foreground">{e.details}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{e.addedBy}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{e.vendor}</TableCell>
-                    <TableCell className="text-center">
-                      {e.receipt ? (
-                        <button className="inline-flex items-center justify-center rounded-md p-1.5 text-[color:var(--sre-blue)] transition-colors hover:bg-accent" aria-label="View receipt">
-                          <Paperclip className="h-4 w-4" />
-                        </button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit entry" onClick={() => setEditDailyIdx(i)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <div className="flex items-center justify-between border-t border-border bg-secondary/40 px-6 py-3 text-sm">
-            <span className="text-muted-foreground">Showing last {dailyEntries.length} entries</span>
-            <Button variant="ghost" size="sm" className="text-[color:var(--sre-blue)]">
-              View full log
-            </Button>
-          </div>
-        </div>
       </div>
 
+      {/* EDIT DIALOGS */}
       <EditRecordDialog
-        open={editLedgerIdx !== null}
-        onOpenChange={(v) => !v && setEditLedgerIdx(null)}
-        title="Edit Ledger Item"
-        description="Update item, quantities and rate. Totals recalculate automatically."
+        open={editProcurementIdx !== null}
+        onOpenChange={(v) => !v && setEditProcurementIdx(null)}
+        title="Edit Procurement Entry"
         fields={[
+          { key: "date", label: "Date", type: "date", required: true },
+          { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true },
           { key: "item", label: "Item", type: "text", required: true },
-          { key: "category", label: "Category", type: "select", options: ["bricks", "cement", "steel", "sandcrush", "labour"] as const, required: true },
-          { key: "required", label: "Required Qty", type: "number", required: true },
-          { key: "procured", label: "Procured Qty", type: "number", required: true },
+          { key: "vendor", label: "Vendor", type: "text", required: true },
+          { key: "quantity", label: "Quantity", type: "number", required: true },
           { key: "unit", label: "Unit", type: "text", required: true },
-          { key: "rate", label: "Avg Rate (PKR)", type: "number", required: true },
+          { key: "rate", label: "Rate (PKR)", type: "number", required: true },
         ]}
-        values={editLedgerIdx !== null ? (ledger[editLedgerIdx] as unknown as EditValues) : null}
+        values={editProcurementIdx !== null ? (procurement[editProcurementIdx] as unknown as EditValues) : null}
         onSave={(next) => {
-          if (editLedgerIdx === null) return;
-          setLedger((prev) => prev.map((r, i) => (i === editLedgerIdx ? { ...r, ...(next as unknown as LedgerRow) } : r)));
+          if (editProcurementIdx === null) return;
+          setProcurement((prev) => prev.map((r, i) => (i === editProcurementIdx ? { ...r, ...(next as unknown as Procurement) } : r)));
         }}
       />
 
@@ -634,12 +785,11 @@ function ProjectLedger() {
         onOpenChange={(v) => !v && setEditContractorIdx(null)}
         title="Edit Contractor"
         fields={[
-          { key: "role", label: "Role", type: "select", options: ["Thekadar", "Plumber", "Electrician", "Designer (Painter)", "Ceiling / Palling"] as const, required: true },
+          { key: "role", label: "Role", type: "select", options: CONTRACTOR_ROLES, required: true },
           { key: "name", label: "Name", type: "text", required: true },
           { key: "contact", label: "Contact", type: "tel", required: true },
           { key: "status", label: "Status", type: "select", options: ["Active", "Completed", "On hold"] as const, required: true },
           { key: "agreedAmount", label: "Agreed (PKR)", type: "number", required: true },
-          { key: "paid", label: "Paid (PKR)", type: "number", required: true },
         ]}
         values={editContractorIdx !== null ? (contractors[editContractorIdx] as unknown as EditValues) : null}
         onSave={(next) => {
@@ -649,20 +799,35 @@ function ProjectLedger() {
       />
 
       <EditRecordDialog
-        open={editDailyIdx !== null}
-        onOpenChange={(v) => !v && setEditDailyIdx(null)}
-        title="Edit Daily Entry"
+        open={editContractorPaymentIdx !== null}
+        onOpenChange={(v) => !v && setEditContractorPaymentIdx(null)}
+        title="Edit Contractor Payment"
         fields={[
-          { key: "date", label: "Date", type: "text", required: true },
-          { key: "category", label: "Category", type: "select", options: ["Material Received", "Labour Logged", "Payment", "Site Note"] as const, required: true },
-          { key: "details", label: "Details", type: "textarea", required: true },
-          { key: "vendor", label: "Vendor / Thekedar", type: "text" },
-          { key: "addedBy", label: "Added By", type: "text" },
+          { key: "date", label: "Date", type: "date", required: true },
+          { key: "amount", label: "Amount (PKR)", type: "number", required: true },
+          { key: "note", label: "Note", type: "text" },
         ]}
-        values={editDailyIdx !== null ? (dailyEntries[editDailyIdx] as unknown as EditValues) : null}
+        values={editContractorPaymentIdx !== null ? (contractorPayments[editContractorPaymentIdx] as unknown as EditValues) : null}
         onSave={(next) => {
-          if (editDailyIdx === null) return;
-          setDailyEntries((prev) => prev.map((e, i) => (i === editDailyIdx ? { ...e, ...(next as unknown as DailyEntry) } : e)));
+          if (editContractorPaymentIdx === null) return;
+          setContractorPayments((prev) => prev.map((p, i) => (i === editContractorPaymentIdx ? { ...p, ...(next as unknown as ContractorPayment) } : p)));
+        }}
+      />
+
+      <EditRecordDialog
+        open={editCustomerPaymentIdx !== null}
+        onOpenChange={(v) => !v && setEditCustomerPaymentIdx(null)}
+        title="Edit Customer Payment"
+        fields={[
+          { key: "date", label: "Date", type: "date", required: true },
+          { key: "amount", label: "Amount (PKR)", type: "number", required: true },
+          { key: "method", label: "Method", type: "select", options: ["Cash", "Bank Transfer", "Cheque"] as const, required: true },
+          { key: "note", label: "Note", type: "text" },
+        ]}
+        values={editCustomerPaymentIdx !== null ? (customerPayments[editCustomerPaymentIdx] as unknown as EditValues) : null}
+        onSave={(next) => {
+          if (editCustomerPaymentIdx === null) return;
+          setCustomerPayments((prev) => prev.map((p, i) => (i === editCustomerPaymentIdx ? { ...p, ...(next as unknown as CustomerPayment) } : p)));
         }}
       />
     </AppShell>
