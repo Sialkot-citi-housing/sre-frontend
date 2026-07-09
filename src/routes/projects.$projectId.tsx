@@ -915,6 +915,7 @@ function ProjectLedger() {
           { key: "quantity", label: "Quantity", type: "number", required: true },
           { key: "unit", label: "Unit", type: "text", required: true },
           { key: "rate", label: "Rate (PKR)", type: "number", required: true },
+          { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
         ]}
         values={editProcurementIdx !== null ? (procurement[editProcurementIdx] as unknown as EditValues) : null}
         onSave={(next) => {
