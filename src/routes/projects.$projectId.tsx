@@ -4,7 +4,7 @@ import {
   CheckCircle2,
   CircleDot,
   Clock3,
-  FileUp,
+  FileDown,
   Layers,
   Plus,
   Pencil,
@@ -19,6 +19,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -71,15 +79,16 @@ type Procurement = {
   unit: string;
   rate: number;
   vendor: string;
+  paid: number;
 };
 
 const INITIAL_PROCUREMENT: Procurement[] = [
-  { id: "p1", date: "2026-06-21", item: "Lucky Cement (OPC)", category: "cement", quantity: 50, unit: "Bags", rate: 1340, vendor: "Bilal Traders" },
-  { id: "p2", date: "2026-06-20", item: "Grade-60 Serya 12mm", category: "steel", quantity: 1.2, unit: "Tons", rate: 305000, vendor: "Ittefaq Steel" },
-  { id: "p3", date: "2026-06-19", item: "Chenab Sand", category: "sandcrush", quantity: 4, unit: "Trolly", rate: 12500, vendor: "Chenab Suppliers" },
-  { id: "p4", date: "2026-06-18", item: "Awwal Bricks", category: "bricks", quantity: 12000, unit: "Pcs", rate: 22, vendor: "Sialkot Brick Kiln" },
-  { id: "p5", date: "2026-06-18", item: "Labour — Mason", category: "labour", quantity: 20, unit: "Days", rate: 2200, vendor: "Thekedar Yousaf" },
-  { id: "p6", date: "2026-06-15", item: "Margalla Crush", category: "sandcrush", quantity: 6, unit: "Trolly", rate: 21000, vendor: "Margalla Traders" },
+  { id: "p1", date: "2026-06-21", item: "Lucky Cement (OPC)", category: "cement", quantity: 50, unit: "Bags", rate: 1340, vendor: "Bilal Traders", paid: 67000 },
+  { id: "p2", date: "2026-06-20", item: "Grade-60 Serya 12mm", category: "steel", quantity: 1.2, unit: "Tons", rate: 305000, vendor: "Ittefaq Steel", paid: 200000 },
+  { id: "p3", date: "2026-06-19", item: "Chenab Sand", category: "sandcrush", quantity: 4, unit: "Trolly", rate: 12500, vendor: "Chenab Suppliers", paid: 50000 },
+  { id: "p4", date: "2026-06-18", item: "Awwal Bricks", category: "bricks", quantity: 12000, unit: "Pcs", rate: 22, vendor: "Sialkot Brick Kiln", paid: 150000 },
+  { id: "p5", date: "2026-06-18", item: "Labour — Mason", category: "labour", quantity: 20, unit: "Days", rate: 2200, vendor: "Thekedar Yousaf", paid: 44000 },
+  { id: "p6", date: "2026-06-15", item: "Margalla Crush", category: "sandcrush", quantity: 6, unit: "Trolly", rate: 21000, vendor: "Margalla Traders", paid: 90000 },
 ];
 
 const MATERIAL_TABS = [
