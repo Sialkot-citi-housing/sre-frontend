@@ -452,7 +452,7 @@ function ProjectLedger() {
               title="Add Procurement Entry"
               description="Log a material or labour purchase against this project."
               submitLabel="Add Entry"
-              defaults={{ date: today(), item: "", category: "cement", quantity: 0, unit: "Bags", rate: 0, vendor: "" }}
+              defaults={{ date: today(), item: "", category: "cement", quantity: 0, unit: "Bags", rate: 0, vendor: "", paid: 0 }}
               fields={[
                 { key: "date", label: "Date", type: "date", required: true },
                 { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true },
@@ -461,6 +461,7 @@ function ProjectLedger() {
                 { key: "quantity", label: "Quantity", type: "number", required: true },
                 { key: "unit", label: "Unit", type: "text", required: true, placeholder: "Bags / Pcs / Tons / Trolly / Days" },
                 { key: "rate", label: "Rate per Unit (PKR)", type: "number", required: true },
+                { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
               ]}
               onSubmit={(v) =>
                 setProcurement((prev) => [
@@ -473,6 +474,7 @@ function ProjectLedger() {
                     unit: String(v.unit),
                     rate: Number(v.rate) || 0,
                     vendor: String(v.vendor),
+                    paid: Number(v.paid) || 0,
                   },
                   ...prev,
                 ])
