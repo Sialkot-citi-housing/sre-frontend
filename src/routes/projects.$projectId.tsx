@@ -227,6 +227,53 @@ function ProjectLedger() {
   const contractorsTotal = contractors.reduce((s, c) => s + c.agreedAmount, 0);
   const contractorsPaid = contractors.reduce((s, c) => s + paidByContractor(c.id), 0);
 
+  const materialPaidTotal = procurement.reduce((s, r) => s + (r.paid || 0), 0);
+  const filteredPaid = filteredMaterial.reduce((s, r) => s + (r.paid || 0), 0);
+
+  // CSV downloads (client-side)
+  const downloadCSV = (filename: string, rows: (string | number)[][]) => {
+    const csv = rows
+      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const slug = project.plot.toLowerCase().replace(/\s+/g, "-");
+  const downloadMaterialsCSV = () =>
+    downloadCSV(`${slug}-materials.csv`, [
+      ["Date", "Category", "Item", "Vendor", "Quantity", "Unit", "Rate (PKR)", "Total (PKR)", "Paid (PKR)", "Balance (PKR)"],
+      ...procurement.map((r) => [
+        r.date, r.category, r.item, r.vendor, r.quantity, r.unit, r.rate,
+        r.quantity * r.rate, r.paid, Math.max(0, r.quantity * r.rate - r.paid),
+      ]),
+    ]);
+  const downloadContractorsCSV = () => {
+    const rows: (string | number)[][] = [
+      ["Role", "Name", "Contact", "Status", "Agreed (PKR)", "Paid (PKR)", "Balance (PKR)"],
+      ...contractors.map((c) => {
+        const paid = paidByContractor(c.id);
+        return [c.role, c.name, c.contact, c.status, c.agreedAmount, paid, Math.max(0, c.agreedAmount - paid)];
+      }),
+      [],
+      ["Payment Date", "Contractor", "Role", "Amount (PKR)", "Note"],
+      ...contractorPayments.map((p) => {
+        const c = contractors.find((x) => x.id === p.contractorId);
+        return [p.date, c?.name ?? "—", c?.role ?? "—", p.amount, p.note];
+      }),
+    ];
+    downloadCSV(`${slug}-contractors.csv`, rows);
+  };
+  const downloadCustomerCSV = () =>
+    downloadCSV(`${slug}-customer-payments.csv`, [
+      ["Date", "Amount (PKR)", "Method", "Note"],
+      ...customerPayments.map((p) => [p.date, p.amount, p.method, p.note]),
+    ]);
+
   // Completion checks (rule-based)
   const checks = {
     schedule: {
