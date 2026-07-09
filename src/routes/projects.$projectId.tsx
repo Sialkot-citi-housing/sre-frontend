@@ -639,8 +639,60 @@ function ProjectLedger() {
             </div>
             <span className="font-semibold text-foreground">
               {materialTab === "all" ? "Grand total" : "Subtotal"}: PKR {fmtPKR(materialTab === "all" ? totalSpent : filteredTotal)}
+              <span className="ml-3 font-normal text-muted-foreground">
+                (Paid <span className="font-semibold text-emerald-700">PKR {fmtPKR(materialTab === "all" ? materialPaidTotal : filteredPaid)}</span>)
+              </span>
             </span>
           </div>
+
+          {materialTab === "all" && (
+            <div className="border-t border-border">
+              <div className="border-b border-border bg-secondary/30 px-6 py-2.5 flex items-center gap-2">
+                <HardHat className="h-4 w-4 text-[color:var(--sre-blue)]" />
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  All Contractors — Overview
+                </h4>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-secondary/60 hover:bg-secondary/60">
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Role</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Name</TableHead>
+                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Agreed (PKR)</TableHead>
+                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Paid (PKR)</TableHead>
+                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Balance (PKR)</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contractors.map((c) => {
+                      const paid = paidByContractor(c.id);
+                      return (
+                        <TableRow key={c.id} className="border-border">
+                          <TableCell className="text-sm text-muted-foreground">{c.role}</TableCell>
+                          <TableCell className="font-medium text-foreground">{c.name}</TableCell>
+                          <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(c.agreedAmount)}</TableCell>
+                          <TableCell className="text-right tabular-nums text-emerald-700">{fmtPKR(paid)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, c.agreedAmount - paid))}</TableCell>
+                          <TableCell><ContractorStatusBadge status={c.status} /></TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-secondary/40 px-6 py-3 text-sm">
+                <span className="text-muted-foreground">{contractors.length} contractors</span>
+                <span className="font-semibold text-foreground">
+                  Paid PKR {fmtPKR(contractorsPaid)} / {fmtPKR(contractorsTotal)}
+                  <span className="ml-2 font-normal text-muted-foreground">
+                    (Balance PKR {fmtPKR(Math.max(0, contractorsTotal - contractorsPaid))})
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* CONTRACTORS */}
