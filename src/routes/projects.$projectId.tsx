@@ -4,7 +4,7 @@ import {
   CheckCircle2,
   CircleDot,
   Clock3,
-  FileUp,
+  FileDown,
   Layers,
   Plus,
   Pencil,
@@ -19,6 +19,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -71,15 +79,16 @@ type Procurement = {
   unit: string;
   rate: number;
   vendor: string;
+  paid: number;
 };
 
 const INITIAL_PROCUREMENT: Procurement[] = [
-  { id: "p1", date: "2026-06-21", item: "Lucky Cement (OPC)", category: "cement", quantity: 50, unit: "Bags", rate: 1340, vendor: "Bilal Traders" },
-  { id: "p2", date: "2026-06-20", item: "Grade-60 Serya 12mm", category: "steel", quantity: 1.2, unit: "Tons", rate: 305000, vendor: "Ittefaq Steel" },
-  { id: "p3", date: "2026-06-19", item: "Chenab Sand", category: "sandcrush", quantity: 4, unit: "Trolly", rate: 12500, vendor: "Chenab Suppliers" },
-  { id: "p4", date: "2026-06-18", item: "Awwal Bricks", category: "bricks", quantity: 12000, unit: "Pcs", rate: 22, vendor: "Sialkot Brick Kiln" },
-  { id: "p5", date: "2026-06-18", item: "Labour — Mason", category: "labour", quantity: 20, unit: "Days", rate: 2200, vendor: "Thekedar Yousaf" },
-  { id: "p6", date: "2026-06-15", item: "Margalla Crush", category: "sandcrush", quantity: 6, unit: "Trolly", rate: 21000, vendor: "Margalla Traders" },
+  { id: "p1", date: "2026-06-21", item: "Lucky Cement (OPC)", category: "cement", quantity: 50, unit: "Bags", rate: 1340, vendor: "Bilal Traders", paid: 67000 },
+  { id: "p2", date: "2026-06-20", item: "Grade-60 Serya 12mm", category: "steel", quantity: 1.2, unit: "Tons", rate: 305000, vendor: "Ittefaq Steel", paid: 200000 },
+  { id: "p3", date: "2026-06-19", item: "Chenab Sand", category: "sandcrush", quantity: 4, unit: "Trolly", rate: 12500, vendor: "Chenab Suppliers", paid: 50000 },
+  { id: "p4", date: "2026-06-18", item: "Awwal Bricks", category: "bricks", quantity: 12000, unit: "Pcs", rate: 22, vendor: "Sialkot Brick Kiln", paid: 150000 },
+  { id: "p5", date: "2026-06-18", item: "Labour — Mason", category: "labour", quantity: 20, unit: "Days", rate: 2200, vendor: "Thekedar Yousaf", paid: 44000 },
+  { id: "p6", date: "2026-06-15", item: "Margalla Crush", category: "sandcrush", quantity: 6, unit: "Trolly", rate: 21000, vendor: "Margalla Traders", paid: 90000 },
 ];
 
 const MATERIAL_TABS = [
@@ -218,6 +227,53 @@ function ProjectLedger() {
   const contractorsTotal = contractors.reduce((s, c) => s + c.agreedAmount, 0);
   const contractorsPaid = contractors.reduce((s, c) => s + paidByContractor(c.id), 0);
 
+  const materialPaidTotal = procurement.reduce((s, r) => s + (r.paid || 0), 0);
+  const filteredPaid = filteredMaterial.reduce((s, r) => s + (r.paid || 0), 0);
+
+  // CSV downloads (client-side)
+  const downloadCSV = (filename: string, rows: (string | number)[][]) => {
+    const csv = rows
+      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const slug = project.plot.toLowerCase().replace(/\s+/g, "-");
+  const downloadMaterialsCSV = () =>
+    downloadCSV(`${slug}-materials.csv`, [
+      ["Date", "Category", "Item", "Vendor", "Quantity", "Unit", "Rate (PKR)", "Total (PKR)", "Paid (PKR)", "Balance (PKR)"],
+      ...procurement.map((r) => [
+        r.date, r.category, r.item, r.vendor, r.quantity, r.unit, r.rate,
+        r.quantity * r.rate, r.paid, Math.max(0, r.quantity * r.rate - r.paid),
+      ]),
+    ]);
+  const downloadContractorsCSV = () => {
+    const rows: (string | number)[][] = [
+      ["Role", "Name", "Contact", "Status", "Agreed (PKR)", "Paid (PKR)", "Balance (PKR)"],
+      ...contractors.map((c) => {
+        const paid = paidByContractor(c.id);
+        return [c.role, c.name, c.contact, c.status, c.agreedAmount, paid, Math.max(0, c.agreedAmount - paid)];
+      }),
+      [],
+      ["Payment Date", "Contractor", "Role", "Amount (PKR)", "Note"],
+      ...contractorPayments.map((p) => {
+        const c = contractors.find((x) => x.id === p.contractorId);
+        return [p.date, c?.name ?? "—", c?.role ?? "—", p.amount, p.note];
+      }),
+    ];
+    downloadCSV(`${slug}-contractors.csv`, rows);
+  };
+  const downloadCustomerCSV = () =>
+    downloadCSV(`${slug}-customer-payments.csv`, [
+      ["Date", "Amount (PKR)", "Method", "Note"],
+      ...customerPayments.map((p) => [p.date, p.amount, p.method, p.note]),
+    ]);
+
   // Completion checks (rule-based)
   const checks = {
     schedule: {
@@ -330,9 +386,38 @@ function ProjectLedger() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="gap-1.5">
-                <FileUp className="h-4 w-4" /> Export Ledger
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-1.5">
+                    <FileDown className="h-4 w-4" /> Download Report
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Choose report</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => downloadMaterialsCSV()}>
+                    Materials &amp; Labour (CSV)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadContractorsCSV()}>
+                    Contractors &amp; Payments (CSV)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadCustomerCSV()}>
+                    Customer Payments (CSV)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {!markedComplete ? (
+                <Button
+                  onClick={() => setMarkedComplete(true)}
+                  className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                >
+                  <CheckCircle2 className="h-4 w-4" /> Mark as Complete
+                </Button>
+              ) : (
+                <Button disabled variant="outline" className="gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4" /> Completed
+                </Button>
+              )}
             </div>
           </div>
 
@@ -443,7 +528,7 @@ function ProjectLedger() {
               title="Add Procurement Entry"
               description="Log a material or labour purchase against this project."
               submitLabel="Add Entry"
-              defaults={{ date: today(), item: "", category: "cement", quantity: 0, unit: "Bags", rate: 0, vendor: "" }}
+              defaults={{ date: today(), item: "", category: "cement", quantity: 0, unit: "Bags", rate: 0, vendor: "", paid: 0 }}
               fields={[
                 { key: "date", label: "Date", type: "date", required: true },
                 { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true },
@@ -452,6 +537,7 @@ function ProjectLedger() {
                 { key: "quantity", label: "Quantity", type: "number", required: true },
                 { key: "unit", label: "Unit", type: "text", required: true, placeholder: "Bags / Pcs / Tons / Trolly / Days" },
                 { key: "rate", label: "Rate per Unit (PKR)", type: "number", required: true },
+                { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
               ]}
               onSubmit={(v) =>
                 setProcurement((prev) => [
@@ -464,6 +550,7 @@ function ProjectLedger() {
                     unit: String(v.unit),
                     rate: Number(v.rate) || 0,
                     vendor: String(v.vendor),
+                    paid: Number(v.paid) || 0,
                   },
                   ...prev,
                 ])
@@ -496,6 +583,8 @@ function ProjectLedger() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Unit</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Rate (PKR)</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Total (PKR)</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Paid to Vendor</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Balance</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -511,6 +600,8 @@ function ProjectLedger() {
                       <TableCell className="text-muted-foreground">{row.unit}</TableCell>
                       <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(row.rate)}</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(row.quantity * row.rate)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(row.paid)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, row.quantity * row.rate - row.paid))}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit entry" onClick={() => setEditProcurementIdx(rowIdx)}>
                           <Pencil className="h-4 w-4" />
@@ -521,7 +612,7 @@ function ProjectLedger() {
                 })}
                 {filteredMaterial.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
                       No procurement entries in this category yet.
                     </TableCell>
                   </TableRow>
@@ -548,8 +639,60 @@ function ProjectLedger() {
             </div>
             <span className="font-semibold text-foreground">
               {materialTab === "all" ? "Grand total" : "Subtotal"}: PKR {fmtPKR(materialTab === "all" ? totalSpent : filteredTotal)}
+              <span className="ml-3 font-normal text-muted-foreground">
+                (Paid <span className="font-semibold text-emerald-700">PKR {fmtPKR(materialTab === "all" ? materialPaidTotal : filteredPaid)}</span>)
+              </span>
             </span>
           </div>
+
+          {materialTab === "all" && (
+            <div className="border-t border-border">
+              <div className="border-b border-border bg-secondary/30 px-6 py-2.5 flex items-center gap-2">
+                <HardHat className="h-4 w-4 text-[color:var(--sre-blue)]" />
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  All Contractors — Overview
+                </h4>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-secondary/60 hover:bg-secondary/60">
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Role</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Name</TableHead>
+                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Agreed (PKR)</TableHead>
+                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Paid (PKR)</TableHead>
+                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Balance (PKR)</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contractors.map((c) => {
+                      const paid = paidByContractor(c.id);
+                      return (
+                        <TableRow key={c.id} className="border-border">
+                          <TableCell className="text-sm text-muted-foreground">{c.role}</TableCell>
+                          <TableCell className="font-medium text-foreground">{c.name}</TableCell>
+                          <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(c.agreedAmount)}</TableCell>
+                          <TableCell className="text-right tabular-nums text-emerald-700">{fmtPKR(paid)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, c.agreedAmount - paid))}</TableCell>
+                          <TableCell><ContractorStatusBadge status={c.status} /></TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-secondary/40 px-6 py-3 text-sm">
+                <span className="text-muted-foreground">{contractors.length} contractors</span>
+                <span className="font-semibold text-foreground">
+                  Paid PKR {fmtPKR(contractorsPaid)} / {fmtPKR(contractorsTotal)}
+                  <span className="ml-2 font-normal text-muted-foreground">
+                    (Balance PKR {fmtPKR(Math.max(0, contractorsTotal - contractorsPaid))})
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* CONTRACTORS */}
@@ -772,6 +915,7 @@ function ProjectLedger() {
           { key: "quantity", label: "Quantity", type: "number", required: true },
           { key: "unit", label: "Unit", type: "text", required: true },
           { key: "rate", label: "Rate (PKR)", type: "number", required: true },
+          { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
         ]}
         values={editProcurementIdx !== null ? (procurement[editProcurementIdx] as unknown as EditValues) : null}
         onSave={(next) => {

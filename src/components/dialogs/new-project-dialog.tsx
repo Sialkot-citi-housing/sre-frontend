@@ -106,12 +106,11 @@ export function NewProjectDialog({ trigger }: { trigger: ReactNode }) {
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="budget">Total Estimated Budget (PKR)</Label>
-              <Input id="budget" type="number" min={0} placeholder="4,200,000" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="timeline">Estimated Timeline (Days)</Label>
-              <Input id="timeline" type="number" min={1} placeholder="110" required />
+              <Label htmlFor="advance">Advance Received from Client (PKR)</Label>
+              <Input id="advance" type="number" min={0} placeholder="3,000,000" required />
+              <p className="text-xs text-muted-foreground">
+                Amount received at project start. Further instalments are logged under Customer Payments.
+              </p>
             </div>
           </div>
 
