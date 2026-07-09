@@ -583,6 +583,8 @@ function ProjectLedger() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Unit</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Rate (PKR)</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Total (PKR)</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Paid to Vendor</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Balance</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -598,6 +600,8 @@ function ProjectLedger() {
                       <TableCell className="text-muted-foreground">{row.unit}</TableCell>
                       <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(row.rate)}</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(row.quantity * row.rate)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(row.paid)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, row.quantity * row.rate - row.paid))}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit entry" onClick={() => setEditProcurementIdx(rowIdx)}>
                           <Pencil className="h-4 w-4" />
@@ -608,7 +612,7 @@ function ProjectLedger() {
                 })}
                 {filteredMaterial.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
                       No procurement entries in this category yet.
                     </TableCell>
                   </TableRow>
