@@ -339,9 +339,38 @@ function ProjectLedger() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="gap-1.5">
-                <FileUp className="h-4 w-4" /> Export Ledger
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-1.5">
+                    <FileDown className="h-4 w-4" /> Download Report
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Choose report</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => downloadMaterialsCSV()}>
+                    Materials &amp; Labour (CSV)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadContractorsCSV()}>
+                    Contractors &amp; Payments (CSV)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadCustomerCSV()}>
+                    Customer Payments (CSV)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {!markedComplete ? (
+                <Button
+                  onClick={() => setMarkedComplete(true)}
+                  className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                >
+                  <CheckCircle2 className="h-4 w-4" /> Mark as Complete
+                </Button>
+              ) : (
+                <Button disabled variant="outline" className="gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4" /> Completed
+                </Button>
+              )}
             </div>
           </div>
 
