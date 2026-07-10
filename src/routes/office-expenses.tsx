@@ -8,7 +8,6 @@ import {
   CalendarDays,
   Building2,
   Landmark,
-  Pencil,
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
