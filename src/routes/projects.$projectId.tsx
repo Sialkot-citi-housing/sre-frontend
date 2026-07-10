@@ -629,17 +629,14 @@ function ProjectLedger() {
                   { key: "agreedAmount", label: "Agreed Amount (PKR)", type: "number", required: true },
                 ]}
                 onSubmit={(v) =>
-                  setContractors((prev) => [
-                    ...prev,
-                    {
-                      id: uid(),
-                      role: v.role as ContractorRole,
-                      name: String(v.name),
-                      contact: String(v.contact),
-                      agreedAmount: Number(v.agreedAmount) || 0,
-                      status: v.status as Contractor["status"],
-                    },
-                  ])
+                  financeActions.addContractor({
+                    projectId: project.id,
+                    role: v.role as ContractorRole,
+                    name: String(v.name),
+                    contact: String(v.contact),
+                    agreedAmount: Number(v.agreedAmount) || 0,
+                    status: v.status as Contractor["status"],
+                  })
                 }
               />
             </div>
@@ -683,7 +680,6 @@ function ProjectLedger() {
               <TableBody>
                 {contractorsInTab.map((c) => {
                   const paid = paidByContractor(c.id);
-                  const idx = contractors.indexOf(c);
                   return (
                     <TableRow key={c.id} className="border-border transition-colors hover:bg-accent/40">
                       <TableCell className="font-medium text-foreground">{c.name}</TableCell>
@@ -714,13 +710,15 @@ function ProjectLedger() {
                               { key: "note", label: "Note (optional)", type: "text", placeholder: "e.g. Slab milestone" },
                             ]}
                             onSubmit={(v) =>
-                              setContractorPayments((prev) => [
-                                { id: uid(), contractorId: c.id, date: String(v.date), amount: Number(v.amount) || 0, note: String(v.note ?? "") },
-                                ...prev,
-                              ])
+                              financeActions.addContractorPayment({
+                                contractorId: c.id,
+                                date: String(v.date),
+                                amount: Number(v.amount) || 0,
+                                note: String(v.note ?? ""),
+                              })
                             }
                           />
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorId(idx)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorId(c.id)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </div>
@@ -763,7 +761,6 @@ function ProjectLedger() {
                       .filter((p) => contractorsInTab.some((c) => c.id === p.contractorId))
                       .map((p) => {
                         const c = contractors.find((x) => x.id === p.contractorId);
-                        const idx = contractorPayments.indexOf(p);
                         return (
                           <TableRow key={p.id} className="border-border">
                             <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{p.date}</TableCell>
@@ -771,7 +768,7 @@ function ProjectLedger() {
                             <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(p.amount)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{p.note || "—"}</TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditContractorPaymentId(idx)}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditContractorPaymentId(p.id)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </TableCell>
