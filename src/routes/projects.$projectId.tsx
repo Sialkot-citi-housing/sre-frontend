@@ -805,7 +805,7 @@ function ProjectLedger() {
 
       {/* EDIT DIALOGS */}
       <EditRecordDialog
-        open={editProcurementIdx !== null}
+        open={editProcurementId !== null}
         onOpenChange={(v) => !v && setEditProcurementIdx(null)}
         title="Edit Procurement Entry"
         fields={[
@@ -818,15 +818,15 @@ function ProjectLedger() {
           { key: "rate", label: "Rate (PKR)", type: "number", required: true },
           { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
         ]}
-        values={editProcurementIdx !== null ? (procurement[editProcurementIdx] as unknown as EditValues) : null}
+        values={editProcurementId !== null ? (procurement[editProcurementId] as unknown as EditValues) : null}
         onSave={(next) => {
-          if (editProcurementIdx === null) return;
-          setProcurement((prev) => prev.map((r, i) => (i === editProcurementIdx ? { ...r, ...(next as unknown as Procurement) } : r)));
+          if (editProcurementId === null) return;
+          setProcurement((prev) => prev.map((r, i) => (i === editProcurementId ? { ...r, ...(next as unknown as Procurement) } : r)));
         }}
       />
 
       <EditRecordDialog
-        open={editContractorIdx !== null}
+        open={editContractorId !== null}
         onOpenChange={(v) => !v && setEditContractorIdx(null)}
         title="Edit Contractor"
         fields={[
@@ -836,15 +836,15 @@ function ProjectLedger() {
           { key: "status", label: "Status", type: "select", options: ["Active", "Completed", "On hold"] as const, required: true },
           { key: "agreedAmount", label: "Agreed (PKR)", type: "number", required: true },
         ]}
-        values={editContractorIdx !== null ? (contractors[editContractorIdx] as unknown as EditValues) : null}
+        values={editContractorId !== null ? (contractors[editContractorId] as unknown as EditValues) : null}
         onSave={(next) => {
-          if (editContractorIdx === null) return;
-          setContractors((prev) => prev.map((c, i) => (i === editContractorIdx ? { ...c, ...(next as unknown as Contractor) } : c)));
+          if (editContractorId === null) return;
+          setContractors((prev) => prev.map((c, i) => (i === editContractorId ? { ...c, ...(next as unknown as Contractor) } : c)));
         }}
       />
 
       <EditRecordDialog
-        open={editContractorPaymentIdx !== null}
+        open={editContractorPaymentId !== null}
         onOpenChange={(v) => !v && setEditContractorPaymentIdx(null)}
         title="Edit Contractor Payment"
         fields={[
@@ -852,15 +852,15 @@ function ProjectLedger() {
           { key: "amount", label: "Amount (PKR)", type: "number", required: true },
           { key: "note", label: "Note", type: "text" },
         ]}
-        values={editContractorPaymentIdx !== null ? (contractorPayments[editContractorPaymentIdx] as unknown as EditValues) : null}
+        values={editContractorPaymentId !== null ? (contractorPayments[editContractorPaymentId] as unknown as EditValues) : null}
         onSave={(next) => {
-          if (editContractorPaymentIdx === null) return;
-          setContractorPayments((prev) => prev.map((p, i) => (i === editContractorPaymentIdx ? { ...p, ...(next as unknown as ContractorPayment) } : p)));
+          if (editContractorPaymentId === null) return;
+          setContractorPayments((prev) => prev.map((p, i) => (i === editContractorPaymentId ? { ...p, ...(next as unknown as ContractorPayment) } : p)));
         }}
       />
 
       <EditRecordDialog
-        open={editCustomerPaymentIdx !== null}
+        open={editCustomerPaymentId !== null}
         onOpenChange={(v) => !v && setEditCustomerPaymentIdx(null)}
         title="Edit Customer Payment"
         fields={[
@@ -869,10 +869,10 @@ function ProjectLedger() {
           { key: "method", label: "Method", type: "select", options: ["Cash", "Bank Transfer", "Cheque"] as const, required: true },
           { key: "note", label: "Note", type: "text" },
         ]}
-        values={editCustomerPaymentIdx !== null ? (customerPayments[editCustomerPaymentIdx] as unknown as EditValues) : null}
+        values={editCustomerPaymentId !== null ? (customerPayments[editCustomerPaymentId] as unknown as EditValues) : null}
         onSave={(next) => {
-          if (editCustomerPaymentIdx === null) return;
-          setCustomerPayments((prev) => prev.map((p, i) => (i === editCustomerPaymentIdx ? { ...p, ...(next as unknown as CustomerPayment) } : p)));
+          if (editCustomerPaymentId === null) return;
+          setCustomerPayments((prev) => prev.map((p, i) => (i === editCustomerPaymentId ? { ...p, ...(next as unknown as CustomerPayment) } : p)));
         }}
       />
     </AppShell>
