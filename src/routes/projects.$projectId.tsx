@@ -115,22 +115,21 @@ function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
-const uid = () => Math.random().toString(36).slice(2, 10);
-const today = () => new Date().toISOString().slice(0, 10);
-
 function ProjectLedger() {
   const { project } = Route.useLoaderData();
+  const store = useFinance();
+  const procurement = store.procurements.filter((p) => p.projectId === project.id);
+  const contractors = store.contractors.filter((c) => c.projectId === project.id);
+  const contractorIds = new Set(contractors.map((c) => c.id));
+  const contractorPayments = store.contractorPayments.filter((p) => contractorIds.has(p.contractorId));
+  const customerPayments = store.customerPayments.filter((p) => p.projectId === project.id);
+
   const [materialTab, setMaterialTab] = useState<string>("all");
   const [contractorTab, setContractorTab] = useState<string>(CONTRACTOR_ROLES[0]);
-  const [procurement, setProcurement] = useState<Procurement[]>(INITIAL_PROCUREMENT);
-  const [contractors, setContractors] = useState<Contractor[]>(INITIAL_CONTRACTORS);
-  const [contractorPayments, setContractorPayments] = useState<ContractorPayment[]>(INITIAL_CONTRACTOR_PAYMENTS);
-  const [customerPayments, setCustomerPayments] = useState<CustomerPayment[]>(INITIAL_CUSTOMER_PAYMENTS);
-
-  const [editProcurementIdx, setEditProcurementIdx] = useState<number | null>(null);
-  const [editContractorIdx, setEditContractorIdx] = useState<number | null>(null);
-  const [editContractorPaymentIdx, setEditContractorPaymentIdx] = useState<number | null>(null);
-  const [editCustomerPaymentIdx, setEditCustomerPaymentIdx] = useState<number | null>(null);
+  const [editProcurementId, setEditProcurementId] = useState<string | null>(null);
+  const [editContractorId, setEditContractorId] = useState<string | null>(null);
+  const [editContractorPaymentId, setEditContractorPaymentId] = useState<string | null>(null);
+  const [editCustomerPaymentId, setEditCustomerPaymentId] = useState<string | null>(null);
   const [markedComplete, setMarkedComplete] = useState(false);
 
   const contractPrice = project.budget;
