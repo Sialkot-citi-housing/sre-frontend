@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Receipt,
   Search,
   Sparkles,
   Wallet,
@@ -40,7 +39,6 @@ const nav: NavItem[] = [
   { to: "/ledgers", label: "Project Ledgers", icon: FileText, matchPrefix: "/projects" },
   { to: "/office-expenses", label: "Office Expenses", icon: Wallet },
   { to: "/quotations", label: "Smart Quotations", icon: Sparkles },
-  { to: "/receipts", label: "Vendor Receipts", icon: Receipt },
 ];
 
 type SearchHit =
@@ -52,7 +50,6 @@ const PAGE_INDEX: { title: string; sub: string; to: string; keywords: string }[]
   { title: "Project Ledgers", sub: "Portfolio of active projects", to: "/ledgers", keywords: "ledgers projects portfolio plots" },
   { title: "Office Expenses", sub: "Overhead expense register", to: "/office-expenses", keywords: "office expenses overhead utilities rent fuel" },
   { title: "Smart Quotations", sub: "AI-powered estimation", to: "/quotations", keywords: "quotations quotes estimate naqsha" },
-  { title: "Vendor Receipts", sub: "Receipts archive", to: "/receipts", keywords: "vendor receipts invoices bills" },
 ];
 
 export function AppShell({

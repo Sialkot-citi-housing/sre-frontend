@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ReceiptsRouteImport } from './routes/receipts'
 import { Route as QuotationsRouteImport } from './routes/quotations'
 import { Route as OfficeExpensesRouteImport } from './routes/office-expenses'
 import { Route as LedgersRouteImport } from './routes/ledgers'
@@ -17,11 +16,6 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 
-const ReceiptsRoute = ReceiptsRouteImport.update({
-  id: '/receipts',
-  path: '/receipts',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const QuotationsRoute = QuotationsRouteImport.update({
   id: '/quotations',
   path: '/quotations',
@@ -59,7 +53,6 @@ export interface FileRoutesByFullPath {
   '/ledgers': typeof LedgersRoute
   '/office-expenses': typeof OfficeExpensesRoute
   '/quotations': typeof QuotationsRoute
-  '/receipts': typeof ReceiptsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
 }
 export interface FileRoutesByTo {
@@ -68,7 +61,6 @@ export interface FileRoutesByTo {
   '/ledgers': typeof LedgersRoute
   '/office-expenses': typeof OfficeExpensesRoute
   '/quotations': typeof QuotationsRoute
-  '/receipts': typeof ReceiptsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
 }
 export interface FileRoutesById {
@@ -78,7 +70,6 @@ export interface FileRoutesById {
   '/ledgers': typeof LedgersRoute
   '/office-expenses': typeof OfficeExpensesRoute
   '/quotations': typeof QuotationsRoute
-  '/receipts': typeof ReceiptsRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
 }
 export interface FileRouteTypes {
@@ -89,7 +80,6 @@ export interface FileRouteTypes {
     | '/ledgers'
     | '/office-expenses'
     | '/quotations'
-    | '/receipts'
     | '/projects/$projectId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -98,7 +88,6 @@ export interface FileRouteTypes {
     | '/ledgers'
     | '/office-expenses'
     | '/quotations'
-    | '/receipts'
     | '/projects/$projectId'
   id:
     | '__root__'
@@ -107,7 +96,6 @@ export interface FileRouteTypes {
     | '/ledgers'
     | '/office-expenses'
     | '/quotations'
-    | '/receipts'
     | '/projects/$projectId'
   fileRoutesById: FileRoutesById
 }
@@ -117,19 +105,11 @@ export interface RootRouteChildren {
   LedgersRoute: typeof LedgersRoute
   OfficeExpensesRoute: typeof OfficeExpensesRoute
   QuotationsRoute: typeof QuotationsRoute
-  ReceiptsRoute: typeof ReceiptsRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/receipts': {
-      id: '/receipts'
-      path: '/receipts'
-      fullPath: '/receipts'
-      preLoaderRoute: typeof ReceiptsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/quotations': {
       id: '/quotations'
       path: '/quotations'
@@ -181,7 +161,6 @@ const rootRouteChildren: RootRouteChildren = {
   LedgersRoute: LedgersRoute,
   OfficeExpensesRoute: OfficeExpensesRoute,
   QuotationsRoute: QuotationsRoute,
-  ReceiptsRoute: ReceiptsRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
 }
 export const routeTree = rootRouteImport

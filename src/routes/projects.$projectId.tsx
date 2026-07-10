@@ -38,6 +38,19 @@ import {
 import { fmtPKR, projects } from "@/lib/projects-data";
 import { AddRecordDialog } from "@/components/dialogs/add-record-dialog";
 import { EditRecordDialog, type EditValues } from "@/components/dialogs/edit-record-dialog";
+import {
+  useFinance,
+  financeActions,
+  MATERIAL_CATEGORY_OPTIONS,
+  CONTRACTOR_ROLES,
+  type MaterialCategory,
+  type Contractor,
+  type ContractorRole,
+  type Procurement,
+  type ContractorPayment,
+  type CustomerPayment,
+  today,
+} from "@/lib/finance-store";
 
 export const Route = createFileRoute("/projects/$projectId")({
   loader: ({ params }) => {
@@ -67,30 +80,6 @@ export const Route = createFileRoute("/projects/$projectId")({
   ),
 });
 
-type MaterialCategory = "bricks" | "cement" | "steel" | "sandcrush" | "labour" | "other";
-const MATERIAL_CATEGORY_OPTIONS = ["bricks", "cement", "steel", "sandcrush", "labour", "other"] as const;
-
-type Procurement = {
-  id: string;
-  date: string;
-  item: string;
-  category: MaterialCategory;
-  quantity: number;
-  unit: string;
-  rate: number;
-  vendor: string;
-  paid: number;
-};
-
-const INITIAL_PROCUREMENT: Procurement[] = [
-  { id: "p1", date: "2026-06-21", item: "Lucky Cement (OPC)", category: "cement", quantity: 50, unit: "Bags", rate: 1340, vendor: "Bilal Traders", paid: 67000 },
-  { id: "p2", date: "2026-06-20", item: "Grade-60 Serya 12mm", category: "steel", quantity: 1.2, unit: "Tons", rate: 305000, vendor: "Ittefaq Steel", paid: 200000 },
-  { id: "p3", date: "2026-06-19", item: "Chenab Sand", category: "sandcrush", quantity: 4, unit: "Trolly", rate: 12500, vendor: "Chenab Suppliers", paid: 50000 },
-  { id: "p4", date: "2026-06-18", item: "Awwal Bricks", category: "bricks", quantity: 12000, unit: "Pcs", rate: 22, vendor: "Sialkot Brick Kiln", paid: 150000 },
-  { id: "p5", date: "2026-06-18", item: "Labour — Mason", category: "labour", quantity: 20, unit: "Days", rate: 2200, vendor: "Thekedar Yousaf", paid: 44000 },
-  { id: "p6", date: "2026-06-15", item: "Margalla Crush", category: "sandcrush", quantity: 6, unit: "Trolly", rate: 21000, vendor: "Margalla Traders", paid: 90000 },
-];
-
 const MATERIAL_TABS = [
   { id: "all", label: "All (Overview)" },
   { id: "bricks", label: "Bricks" },
@@ -100,68 +89,6 @@ const MATERIAL_TABS = [
   { id: "labour", label: "Labour" },
   { id: "other", label: "Other" },
 ] as const;
-
-type ContractorRole =
-  | "Thekadar"
-  | "Plumber"
-  | "Electrician"
-  | "Designer (Painter)"
-  | "Ceiling / Palling";
-
-const CONTRACTOR_ROLES: ContractorRole[] = [
-  "Thekadar",
-  "Plumber",
-  "Electrician",
-  "Designer (Painter)",
-  "Ceiling / Palling",
-];
-
-type Contractor = {
-  id: string;
-  role: ContractorRole;
-  name: string;
-  contact: string;
-  agreedAmount: number;
-  status: "Active" | "Completed" | "On hold";
-};
-
-const INITIAL_CONTRACTORS: Contractor[] = [
-  { id: "c1", role: "Thekadar", name: "Yousaf Bhatti", contact: "0300-1234567", agreedAmount: 1250000, status: "Active" },
-  { id: "c2", role: "Plumber", name: "Rashid & Sons", contact: "0321-7654321", agreedAmount: 185000, status: "Active" },
-  { id: "c3", role: "Electrician", name: "Sialkot Electric Works", contact: "0302-2233445", agreedAmount: 240000, status: "Active" },
-  { id: "c4", role: "Designer (Painter)", name: "Master Aslam", contact: "0345-9988776", agreedAmount: 320000, status: "On hold" },
-  { id: "c5", role: "Ceiling / Palling", name: "Kamran Ceiling House", contact: "0333-1122334", agreedAmount: 210000, status: "On hold" },
-];
-
-type ContractorPayment = {
-  id: string;
-  contractorId: string;
-  date: string;
-  amount: number;
-  note: string;
-};
-
-const INITIAL_CONTRACTOR_PAYMENTS: ContractorPayment[] = [
-  { id: "cp1", contractorId: "c1", date: "2026-03-16", amount: 300000, note: "Advance on start" },
-  { id: "cp2", contractorId: "c1", date: "2026-04-28", amount: 280000, note: "Grey slab milestone" },
-  { id: "cp3", contractorId: "c1", date: "2026-06-10", amount: 200000, note: "1st floor slab" },
-  { id: "cp4", contractorId: "c2", date: "2026-05-08", amount: 90000, note: "Rough plumbing" },
-  { id: "cp5", contractorId: "c3", date: "2026-05-20", amount: 60000, note: "Conduit rough-in" },
-];
-
-type CustomerPayment = {
-  id: string;
-  date: string;
-  amount: number;
-  method: "Cash" | "Bank Transfer" | "Cheque";
-  note: string;
-};
-
-const INITIAL_CUSTOMER_PAYMENTS: CustomerPayment[] = [
-  { id: "op1", date: "2026-03-14", amount: 3000000, method: "Bank Transfer", note: "Booking / start advance" },
-  { id: "op2", date: "2026-04-30", amount: 1000000, method: "Cheque", note: "Grey structure milestone" },
-  { id: "op3", date: "2026-06-05", amount: 500000, method: "Cash", note: "1st floor slab" },
-];
 
 function ContractorStatusBadge({ status }: { status: Contractor["status"] }) {
   const map: Record<Contractor["status"], string> = {
@@ -188,22 +115,21 @@ function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
-const uid = () => Math.random().toString(36).slice(2, 10);
-const today = () => new Date().toISOString().slice(0, 10);
-
 function ProjectLedger() {
   const { project } = Route.useLoaderData();
+  const store = useFinance();
+  const procurement = store.procurements.filter((p) => p.projectId === project.id);
+  const contractors = store.contractors.filter((c) => c.projectId === project.id);
+  const contractorIds = new Set(contractors.map((c) => c.id));
+  const contractorPayments = store.contractorPayments.filter((p) => contractorIds.has(p.contractorId));
+  const customerPayments = store.customerPayments.filter((p) => p.projectId === project.id);
+
   const [materialTab, setMaterialTab] = useState<string>("all");
   const [contractorTab, setContractorTab] = useState<string>(CONTRACTOR_ROLES[0]);
-  const [procurement, setProcurement] = useState<Procurement[]>(INITIAL_PROCUREMENT);
-  const [contractors, setContractors] = useState<Contractor[]>(INITIAL_CONTRACTORS);
-  const [contractorPayments, setContractorPayments] = useState<ContractorPayment[]>(INITIAL_CONTRACTOR_PAYMENTS);
-  const [customerPayments, setCustomerPayments] = useState<CustomerPayment[]>(INITIAL_CUSTOMER_PAYMENTS);
-
-  const [editProcurementIdx, setEditProcurementIdx] = useState<number | null>(null);
-  const [editContractorIdx, setEditContractorIdx] = useState<number | null>(null);
-  const [editContractorPaymentIdx, setEditContractorPaymentIdx] = useState<number | null>(null);
-  const [editCustomerPaymentIdx, setEditCustomerPaymentIdx] = useState<number | null>(null);
+  const [editProcurementId, setEditProcurementId] = useState<string | null>(null);
+  const [editContractorId, setEditContractorId] = useState<string | null>(null);
+  const [editContractorPaymentId, setEditContractorPaymentId] = useState<string | null>(null);
+  const [editCustomerPaymentId, setEditCustomerPaymentId] = useState<string | null>(null);
   const [markedComplete, setMarkedComplete] = useState(false);
 
   const contractPrice = project.budget;
@@ -460,10 +386,13 @@ function ProjectLedger() {
                 { key: "note", label: "Note", type: "text", placeholder: "e.g. Grey structure milestone" },
               ]}
               onSubmit={(v) =>
-                setCustomerPayments((prev) => [
-                  { id: uid(), date: String(v.date), amount: Number(v.amount) || 0, method: v.method as CustomerPayment["method"], note: String(v.note ?? "") },
-                  ...prev,
-                ])
+                financeActions.addCustomerPayment({
+                  projectId: project.id,
+                  date: String(v.date),
+                  amount: Number(v.amount) || 0,
+                  method: v.method as CustomerPayment["method"],
+                  note: String(v.note ?? ""),
+                })
               }
             />
           </div>
@@ -485,14 +414,14 @@ function ProjectLedger() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customerPayments.map((p, i) => (
+                {customerPayments.map((p) => (
                   <TableRow key={p.id} className="border-border transition-colors hover:bg-accent/40">
                     <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{p.date}</TableCell>
                     <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(p.amount)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{p.method}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{p.note || "—"}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditCustomerPaymentIdx(i)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditCustomerPaymentId(p.id)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -540,20 +469,17 @@ function ProjectLedger() {
                 { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
               ]}
               onSubmit={(v) =>
-                setProcurement((prev) => [
-                  {
-                    id: uid(),
-                    date: String(v.date),
-                    item: String(v.item),
-                    category: v.category as MaterialCategory,
-                    quantity: Number(v.quantity) || 0,
-                    unit: String(v.unit),
-                    rate: Number(v.rate) || 0,
-                    vendor: String(v.vendor),
-                    paid: Number(v.paid) || 0,
-                  },
-                  ...prev,
-                ])
+                financeActions.addProcurement({
+                  projectId: project.id,
+                  date: String(v.date),
+                  item: String(v.item),
+                  category: v.category as MaterialCategory,
+                  quantity: Number(v.quantity) || 0,
+                  unit: String(v.unit),
+                  rate: Number(v.rate) || 0,
+                  vendor: String(v.vendor),
+                  paid: Number(v.paid) || 0,
+                })
               }
             />
           </div>
@@ -590,7 +516,6 @@ function ProjectLedger() {
               </TableHeader>
               <TableBody>
                 {filteredMaterial.map((row) => {
-                  const rowIdx = procurement.indexOf(row);
                   return (
                     <TableRow key={row.id} className="border-border transition-colors hover:bg-accent/40">
                       <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{row.date}</TableCell>
@@ -603,7 +528,31 @@ function ProjectLedger() {
                       <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(row.paid)}</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, row.quantity * row.rate - row.paid))}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit entry" onClick={() => setEditProcurementIdx(rowIdx)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit entry" onClick={() => setEditProcurementId(row.id)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {materialTab === "all" && contractors.map((c) => {
+                  const paid = paidByContractor(c.id);
+                  return (
+                    <TableRow key={`ov-${c.id}`} className="border-border bg-[color:var(--sre-blue)]/5 hover:bg-[color:var(--sre-blue)]/10">
+                      <TableCell className="text-sm text-muted-foreground">—</TableCell>
+                      <TableCell>
+                        <div className="font-medium text-foreground">{c.name}</div>
+                        <div className="text-[11px] text-[color:var(--sre-blue)]">Contractor · {c.role}</div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{c.contact}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">—</TableCell>
+                      <TableCell className="text-muted-foreground">—</TableCell>
+                      <TableCell className="text-right text-muted-foreground">—</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(c.agreedAmount)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(paid)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, c.agreedAmount - paid))}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorId(c.id)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -624,6 +573,7 @@ function ProjectLedger() {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <span className="text-muted-foreground">
                 {filteredMaterial.length} entries{materialTab !== "all" && ` · filtered`}
+                {materialTab === "all" && ` · ${contractors.length} contractors`}
               </span>
               {Object.keys(qtyByItem).length > 0 && (
                 <>
@@ -638,61 +588,12 @@ function ProjectLedger() {
               )}
             </div>
             <span className="font-semibold text-foreground">
-              {materialTab === "all" ? "Grand total" : "Subtotal"}: PKR {fmtPKR(materialTab === "all" ? totalSpent : filteredTotal)}
+              {materialTab === "all" ? "Grand total (Materials + Contractors)" : "Subtotal"}: PKR {fmtPKR(materialTab === "all" ? totalSpent + contractorsTotal : filteredTotal)}
               <span className="ml-3 font-normal text-muted-foreground">
-                (Paid <span className="font-semibold text-emerald-700">PKR {fmtPKR(materialTab === "all" ? materialPaidTotal : filteredPaid)}</span>)
+                (Paid <span className="font-semibold text-emerald-700">PKR {fmtPKR(materialTab === "all" ? materialPaidTotal + contractorsPaid : filteredPaid)}</span>)
               </span>
             </span>
           </div>
-
-          {materialTab === "all" && (
-            <div className="border-t border-border">
-              <div className="border-b border-border bg-secondary/30 px-6 py-2.5 flex items-center gap-2">
-                <HardHat className="h-4 w-4 text-[color:var(--sre-blue)]" />
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  All Contractors — Overview
-                </h4>
-              </div>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-secondary/60 hover:bg-secondary/60">
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Role</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Name</TableHead>
-                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Agreed (PKR)</TableHead>
-                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Paid (PKR)</TableHead>
-                      <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Balance (PKR)</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {contractors.map((c) => {
-                      const paid = paidByContractor(c.id);
-                      return (
-                        <TableRow key={c.id} className="border-border">
-                          <TableCell className="text-sm text-muted-foreground">{c.role}</TableCell>
-                          <TableCell className="font-medium text-foreground">{c.name}</TableCell>
-                          <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(c.agreedAmount)}</TableCell>
-                          <TableCell className="text-right tabular-nums text-emerald-700">{fmtPKR(paid)}</TableCell>
-                          <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, c.agreedAmount - paid))}</TableCell>
-                          <TableCell><ContractorStatusBadge status={c.status} /></TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-secondary/40 px-6 py-3 text-sm">
-                <span className="text-muted-foreground">{contractors.length} contractors</span>
-                <span className="font-semibold text-foreground">
-                  Paid PKR {fmtPKR(contractorsPaid)} / {fmtPKR(contractorsTotal)}
-                  <span className="ml-2 font-normal text-muted-foreground">
-                    (Balance PKR {fmtPKR(Math.max(0, contractorsTotal - contractorsPaid))})
-                  </span>
-                </span>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* CONTRACTORS */}
@@ -728,17 +629,14 @@ function ProjectLedger() {
                   { key: "agreedAmount", label: "Agreed Amount (PKR)", type: "number", required: true },
                 ]}
                 onSubmit={(v) =>
-                  setContractors((prev) => [
-                    ...prev,
-                    {
-                      id: uid(),
-                      role: v.role as ContractorRole,
-                      name: String(v.name),
-                      contact: String(v.contact),
-                      agreedAmount: Number(v.agreedAmount) || 0,
-                      status: v.status as Contractor["status"],
-                    },
-                  ])
+                  financeActions.addContractor({
+                    projectId: project.id,
+                    role: v.role as ContractorRole,
+                    name: String(v.name),
+                    contact: String(v.contact),
+                    agreedAmount: Number(v.agreedAmount) || 0,
+                    status: v.status as Contractor["status"],
+                  })
                 }
               />
             </div>
@@ -782,7 +680,6 @@ function ProjectLedger() {
               <TableBody>
                 {contractorsInTab.map((c) => {
                   const paid = paidByContractor(c.id);
-                  const idx = contractors.indexOf(c);
                   return (
                     <TableRow key={c.id} className="border-border transition-colors hover:bg-accent/40">
                       <TableCell className="font-medium text-foreground">{c.name}</TableCell>
@@ -813,13 +710,15 @@ function ProjectLedger() {
                               { key: "note", label: "Note (optional)", type: "text", placeholder: "e.g. Slab milestone" },
                             ]}
                             onSubmit={(v) =>
-                              setContractorPayments((prev) => [
-                                { id: uid(), contractorId: c.id, date: String(v.date), amount: Number(v.amount) || 0, note: String(v.note ?? "") },
-                                ...prev,
-                              ])
+                              financeActions.addContractorPayment({
+                                contractorId: c.id,
+                                date: String(v.date),
+                                amount: Number(v.amount) || 0,
+                                note: String(v.note ?? ""),
+                              })
                             }
                           />
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorIdx(idx)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorId(c.id)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </div>
@@ -862,7 +761,6 @@ function ProjectLedger() {
                       .filter((p) => contractorsInTab.some((c) => c.id === p.contractorId))
                       .map((p) => {
                         const c = contractors.find((x) => x.id === p.contractorId);
-                        const idx = contractorPayments.indexOf(p);
                         return (
                           <TableRow key={p.id} className="border-border">
                             <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{p.date}</TableCell>
@@ -870,7 +768,7 @@ function ProjectLedger() {
                             <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(p.amount)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{p.note || "—"}</TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditContractorPaymentIdx(idx)}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditContractorPaymentId(p.id)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -904,8 +802,8 @@ function ProjectLedger() {
 
       {/* EDIT DIALOGS */}
       <EditRecordDialog
-        open={editProcurementIdx !== null}
-        onOpenChange={(v) => !v && setEditProcurementIdx(null)}
+        open={editProcurementId !== null}
+        onOpenChange={(v) => !v && setEditProcurementId(null)}
         title="Edit Procurement Entry"
         fields={[
           { key: "date", label: "Date", type: "date", required: true },
@@ -917,16 +815,20 @@ function ProjectLedger() {
           { key: "rate", label: "Rate (PKR)", type: "number", required: true },
           { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
         ]}
-        values={editProcurementIdx !== null ? (procurement[editProcurementIdx] as unknown as EditValues) : null}
+        values={
+          editProcurementId
+            ? (procurement.find((r) => r.id === editProcurementId) as unknown as EditValues) ?? null
+            : null
+        }
         onSave={(next) => {
-          if (editProcurementIdx === null) return;
-          setProcurement((prev) => prev.map((r, i) => (i === editProcurementIdx ? { ...r, ...(next as unknown as Procurement) } : r)));
+          if (!editProcurementId) return;
+          financeActions.updateProcurement(editProcurementId, next as unknown as Partial<Procurement>);
         }}
       />
 
       <EditRecordDialog
-        open={editContractorIdx !== null}
-        onOpenChange={(v) => !v && setEditContractorIdx(null)}
+        open={editContractorId !== null}
+        onOpenChange={(v) => !v && setEditContractorId(null)}
         title="Edit Contractor"
         fields={[
           { key: "role", label: "Role", type: "select", options: CONTRACTOR_ROLES, required: true },
@@ -935,32 +837,40 @@ function ProjectLedger() {
           { key: "status", label: "Status", type: "select", options: ["Active", "Completed", "On hold"] as const, required: true },
           { key: "agreedAmount", label: "Agreed (PKR)", type: "number", required: true },
         ]}
-        values={editContractorIdx !== null ? (contractors[editContractorIdx] as unknown as EditValues) : null}
+        values={
+          editContractorId
+            ? (contractors.find((c) => c.id === editContractorId) as unknown as EditValues) ?? null
+            : null
+        }
         onSave={(next) => {
-          if (editContractorIdx === null) return;
-          setContractors((prev) => prev.map((c, i) => (i === editContractorIdx ? { ...c, ...(next as unknown as Contractor) } : c)));
+          if (!editContractorId) return;
+          financeActions.updateContractor(editContractorId, next as unknown as Partial<Contractor>);
         }}
       />
 
       <EditRecordDialog
-        open={editContractorPaymentIdx !== null}
-        onOpenChange={(v) => !v && setEditContractorPaymentIdx(null)}
+        open={editContractorPaymentId !== null}
+        onOpenChange={(v) => !v && setEditContractorPaymentId(null)}
         title="Edit Contractor Payment"
         fields={[
           { key: "date", label: "Date", type: "date", required: true },
           { key: "amount", label: "Amount (PKR)", type: "number", required: true },
           { key: "note", label: "Note", type: "text" },
         ]}
-        values={editContractorPaymentIdx !== null ? (contractorPayments[editContractorPaymentIdx] as unknown as EditValues) : null}
+        values={
+          editContractorPaymentId
+            ? (contractorPayments.find((p) => p.id === editContractorPaymentId) as unknown as EditValues) ?? null
+            : null
+        }
         onSave={(next) => {
-          if (editContractorPaymentIdx === null) return;
-          setContractorPayments((prev) => prev.map((p, i) => (i === editContractorPaymentIdx ? { ...p, ...(next as unknown as ContractorPayment) } : p)));
+          if (!editContractorPaymentId) return;
+          financeActions.updateContractorPayment(editContractorPaymentId, next as unknown as Partial<ContractorPayment>);
         }}
       />
 
       <EditRecordDialog
-        open={editCustomerPaymentIdx !== null}
-        onOpenChange={(v) => !v && setEditCustomerPaymentIdx(null)}
+        open={editCustomerPaymentId !== null}
+        onOpenChange={(v) => !v && setEditCustomerPaymentId(null)}
         title="Edit Customer Payment"
         fields={[
           { key: "date", label: "Date", type: "date", required: true },
@@ -968,10 +878,14 @@ function ProjectLedger() {
           { key: "method", label: "Method", type: "select", options: ["Cash", "Bank Transfer", "Cheque"] as const, required: true },
           { key: "note", label: "Note", type: "text" },
         ]}
-        values={editCustomerPaymentIdx !== null ? (customerPayments[editCustomerPaymentIdx] as unknown as EditValues) : null}
+        values={
+          editCustomerPaymentId
+            ? (customerPayments.find((p) => p.id === editCustomerPaymentId) as unknown as EditValues) ?? null
+            : null
+        }
         onSave={(next) => {
-          if (editCustomerPaymentIdx === null) return;
-          setCustomerPayments((prev) => prev.map((p, i) => (i === editCustomerPaymentIdx ? { ...p, ...(next as unknown as CustomerPayment) } : p)));
+          if (!editCustomerPaymentId) return;
+          financeActions.updateCustomerPayment(editCustomerPaymentId, next as unknown as Partial<CustomerPayment>);
         }}
       />
     </AppShell>
