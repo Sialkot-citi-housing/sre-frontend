@@ -38,6 +38,19 @@ import {
 import { fmtPKR, projects } from "@/lib/projects-data";
 import { AddRecordDialog } from "@/components/dialogs/add-record-dialog";
 import { EditRecordDialog, type EditValues } from "@/components/dialogs/edit-record-dialog";
+import {
+  useFinance,
+  financeActions,
+  MATERIAL_CATEGORY_OPTIONS,
+  CONTRACTOR_ROLES,
+  type MaterialCategory,
+  type Contractor,
+  type ContractorRole,
+  type Procurement,
+  type ContractorPayment,
+  type CustomerPayment,
+  today,
+} from "@/lib/finance-store";
 
 export const Route = createFileRoute("/projects/$projectId")({
   loader: ({ params }) => {
@@ -67,30 +80,6 @@ export const Route = createFileRoute("/projects/$projectId")({
   ),
 });
 
-type MaterialCategory = "bricks" | "cement" | "steel" | "sandcrush" | "labour" | "other";
-const MATERIAL_CATEGORY_OPTIONS = ["bricks", "cement", "steel", "sandcrush", "labour", "other"] as const;
-
-type Procurement = {
-  id: string;
-  date: string;
-  item: string;
-  category: MaterialCategory;
-  quantity: number;
-  unit: string;
-  rate: number;
-  vendor: string;
-  paid: number;
-};
-
-const INITIAL_PROCUREMENT: Procurement[] = [
-  { id: "p1", date: "2026-06-21", item: "Lucky Cement (OPC)", category: "cement", quantity: 50, unit: "Bags", rate: 1340, vendor: "Bilal Traders", paid: 67000 },
-  { id: "p2", date: "2026-06-20", item: "Grade-60 Serya 12mm", category: "steel", quantity: 1.2, unit: "Tons", rate: 305000, vendor: "Ittefaq Steel", paid: 200000 },
-  { id: "p3", date: "2026-06-19", item: "Chenab Sand", category: "sandcrush", quantity: 4, unit: "Trolly", rate: 12500, vendor: "Chenab Suppliers", paid: 50000 },
-  { id: "p4", date: "2026-06-18", item: "Awwal Bricks", category: "bricks", quantity: 12000, unit: "Pcs", rate: 22, vendor: "Sialkot Brick Kiln", paid: 150000 },
-  { id: "p5", date: "2026-06-18", item: "Labour — Mason", category: "labour", quantity: 20, unit: "Days", rate: 2200, vendor: "Thekedar Yousaf", paid: 44000 },
-  { id: "p6", date: "2026-06-15", item: "Margalla Crush", category: "sandcrush", quantity: 6, unit: "Trolly", rate: 21000, vendor: "Margalla Traders", paid: 90000 },
-];
-
 const MATERIAL_TABS = [
   { id: "all", label: "All (Overview)" },
   { id: "bricks", label: "Bricks" },
@@ -100,68 +89,6 @@ const MATERIAL_TABS = [
   { id: "labour", label: "Labour" },
   { id: "other", label: "Other" },
 ] as const;
-
-type ContractorRole =
-  | "Thekadar"
-  | "Plumber"
-  | "Electrician"
-  | "Designer (Painter)"
-  | "Ceiling / Palling";
-
-const CONTRACTOR_ROLES: ContractorRole[] = [
-  "Thekadar",
-  "Plumber",
-  "Electrician",
-  "Designer (Painter)",
-  "Ceiling / Palling",
-];
-
-type Contractor = {
-  id: string;
-  role: ContractorRole;
-  name: string;
-  contact: string;
-  agreedAmount: number;
-  status: "Active" | "Completed" | "On hold";
-};
-
-const INITIAL_CONTRACTORS: Contractor[] = [
-  { id: "c1", role: "Thekadar", name: "Yousaf Bhatti", contact: "0300-1234567", agreedAmount: 1250000, status: "Active" },
-  { id: "c2", role: "Plumber", name: "Rashid & Sons", contact: "0321-7654321", agreedAmount: 185000, status: "Active" },
-  { id: "c3", role: "Electrician", name: "Sialkot Electric Works", contact: "0302-2233445", agreedAmount: 240000, status: "Active" },
-  { id: "c4", role: "Designer (Painter)", name: "Master Aslam", contact: "0345-9988776", agreedAmount: 320000, status: "On hold" },
-  { id: "c5", role: "Ceiling / Palling", name: "Kamran Ceiling House", contact: "0333-1122334", agreedAmount: 210000, status: "On hold" },
-];
-
-type ContractorPayment = {
-  id: string;
-  contractorId: string;
-  date: string;
-  amount: number;
-  note: string;
-};
-
-const INITIAL_CONTRACTOR_PAYMENTS: ContractorPayment[] = [
-  { id: "cp1", contractorId: "c1", date: "2026-03-16", amount: 300000, note: "Advance on start" },
-  { id: "cp2", contractorId: "c1", date: "2026-04-28", amount: 280000, note: "Grey slab milestone" },
-  { id: "cp3", contractorId: "c1", date: "2026-06-10", amount: 200000, note: "1st floor slab" },
-  { id: "cp4", contractorId: "c2", date: "2026-05-08", amount: 90000, note: "Rough plumbing" },
-  { id: "cp5", contractorId: "c3", date: "2026-05-20", amount: 60000, note: "Conduit rough-in" },
-];
-
-type CustomerPayment = {
-  id: string;
-  date: string;
-  amount: number;
-  method: "Cash" | "Bank Transfer" | "Cheque";
-  note: string;
-};
-
-const INITIAL_CUSTOMER_PAYMENTS: CustomerPayment[] = [
-  { id: "op1", date: "2026-03-14", amount: 3000000, method: "Bank Transfer", note: "Booking / start advance" },
-  { id: "op2", date: "2026-04-30", amount: 1000000, method: "Cheque", note: "Grey structure milestone" },
-  { id: "op3", date: "2026-06-05", amount: 500000, method: "Cash", note: "1st floor slab" },
-];
 
 function ContractorStatusBadge({ status }: { status: Contractor["status"] }) {
   const map: Record<Contractor["status"], string> = {
