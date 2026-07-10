@@ -720,7 +720,7 @@ function ProjectLedger() {
                               ])
                             }
                           />
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorIdx(idx)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorId(idx)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </div>
@@ -771,7 +771,7 @@ function ProjectLedger() {
                             <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(p.amount)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{p.note || "—"}</TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditContractorPaymentIdx(idx)}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditContractorPaymentId(idx)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -806,7 +806,7 @@ function ProjectLedger() {
       {/* EDIT DIALOGS */}
       <EditRecordDialog
         open={editProcurementId !== null}
-        onOpenChange={(v) => !v && setEditProcurementIdx(null)}
+        onOpenChange={(v) => !v && setEditProcurementId(null)}
         title="Edit Procurement Entry"
         fields={[
           { key: "date", label: "Date", type: "date", required: true },
@@ -827,7 +827,7 @@ function ProjectLedger() {
 
       <EditRecordDialog
         open={editContractorId !== null}
-        onOpenChange={(v) => !v && setEditContractorIdx(null)}
+        onOpenChange={(v) => !v && setEditContractorId(null)}
         title="Edit Contractor"
         fields={[
           { key: "role", label: "Role", type: "select", options: CONTRACTOR_ROLES, required: true },
@@ -845,7 +845,7 @@ function ProjectLedger() {
 
       <EditRecordDialog
         open={editContractorPaymentId !== null}
-        onOpenChange={(v) => !v && setEditContractorPaymentIdx(null)}
+        onOpenChange={(v) => !v && setEditContractorPaymentId(null)}
         title="Edit Contractor Payment"
         fields={[
           { key: "date", label: "Date", type: "date", required: true },
@@ -861,7 +861,7 @@ function ProjectLedger() {
 
       <EditRecordDialog
         open={editCustomerPaymentId !== null}
-        onOpenChange={(v) => !v && setEditCustomerPaymentIdx(null)}
+        onOpenChange={(v) => !v && setEditCustomerPaymentId(null)}
         title="Edit Customer Payment"
         fields={[
           { key: "date", label: "Date", type: "date", required: true },
