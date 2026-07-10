@@ -125,7 +125,7 @@ function AddFundDialog() {
       fields={[
         { key: "date", label: "Date", type: "date", required: true },
         { key: "amount", label: "Amount (PKR)", type: "number", required: true },
-        { key: "method", label: "Method", type: "select", options: PAYMENT_METHODS, required: true },
+        { key: "method", label: "Method", type: "select", options: ["Cash", "Bank Transfer", "Cheque"] as const, required: true },
         { key: "from", label: "Received From", type: "text", required: true },
         { key: "note", label: "Note", type: "text", placeholder: "e.g. Weekly float" },
       ]}
@@ -133,7 +133,7 @@ function AddFundDialog() {
         financeActions.addFund({
           date: String(v.date),
           amount: Number(v.amount) || 0,
-          method: v.method as PaymentMethod,
+          method: v.method as "Cash" | "Bank Transfer" | "Cheque",
           from: String(v.from),
           note: String(v.note ?? ""),
         })
