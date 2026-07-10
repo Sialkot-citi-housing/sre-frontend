@@ -815,10 +815,14 @@ function ProjectLedger() {
           { key: "rate", label: "Rate (PKR)", type: "number", required: true },
           { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
         ]}
-        values={editProcurementId !== null ? (procurement[editProcurementId] as unknown as EditValues) : null}
+        values={
+          editProcurementId
+            ? (procurement.find((r) => r.id === editProcurementId) as unknown as EditValues) ?? null
+            : null
+        }
         onSave={(next) => {
-          if (editProcurementId === null) return;
-          setProcurement((prev) => prev.map((r, i) => (i === editProcurementId ? { ...r, ...(next as unknown as Procurement) } : r)));
+          if (!editProcurementId) return;
+          financeActions.updateProcurement(editProcurementId, next as unknown as Partial<Procurement>);
         }}
       />
 
@@ -833,10 +837,14 @@ function ProjectLedger() {
           { key: "status", label: "Status", type: "select", options: ["Active", "Completed", "On hold"] as const, required: true },
           { key: "agreedAmount", label: "Agreed (PKR)", type: "number", required: true },
         ]}
-        values={editContractorId !== null ? (contractors[editContractorId] as unknown as EditValues) : null}
+        values={
+          editContractorId
+            ? (contractors.find((c) => c.id === editContractorId) as unknown as EditValues) ?? null
+            : null
+        }
         onSave={(next) => {
-          if (editContractorId === null) return;
-          setContractors((prev) => prev.map((c, i) => (i === editContractorId ? { ...c, ...(next as unknown as Contractor) } : c)));
+          if (!editContractorId) return;
+          financeActions.updateContractor(editContractorId, next as unknown as Partial<Contractor>);
         }}
       />
 
@@ -849,10 +857,14 @@ function ProjectLedger() {
           { key: "amount", label: "Amount (PKR)", type: "number", required: true },
           { key: "note", label: "Note", type: "text" },
         ]}
-        values={editContractorPaymentId !== null ? (contractorPayments[editContractorPaymentId] as unknown as EditValues) : null}
+        values={
+          editContractorPaymentId
+            ? (contractorPayments.find((p) => p.id === editContractorPaymentId) as unknown as EditValues) ?? null
+            : null
+        }
         onSave={(next) => {
-          if (editContractorPaymentId === null) return;
-          setContractorPayments((prev) => prev.map((p, i) => (i === editContractorPaymentId ? { ...p, ...(next as unknown as ContractorPayment) } : p)));
+          if (!editContractorPaymentId) return;
+          financeActions.updateContractorPayment(editContractorPaymentId, next as unknown as Partial<ContractorPayment>);
         }}
       />
 
@@ -866,10 +878,14 @@ function ProjectLedger() {
           { key: "method", label: "Method", type: "select", options: ["Cash", "Bank Transfer", "Cheque"] as const, required: true },
           { key: "note", label: "Note", type: "text" },
         ]}
-        values={editCustomerPaymentId !== null ? (customerPayments[editCustomerPaymentId] as unknown as EditValues) : null}
+        values={
+          editCustomerPaymentId
+            ? (customerPayments.find((p) => p.id === editCustomerPaymentId) as unknown as EditValues) ?? null
+            : null
+        }
         onSave={(next) => {
-          if (editCustomerPaymentId === null) return;
-          setCustomerPayments((prev) => prev.map((p, i) => (i === editCustomerPaymentId ? { ...p, ...(next as unknown as CustomerPayment) } : p)));
+          if (!editCustomerPaymentId) return;
+          financeActions.updateCustomerPayment(editCustomerPaymentId, next as unknown as Partial<CustomerPayment>);
         }}
       />
     </AppShell>
