@@ -1,4 +1,11 @@
-export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+let rawBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Remove trailing slashes
+rawBase = rawBase.replace(/\/+$/, '');
+// Append /api if missing to prevent double slashes or missing routes
+if (!rawBase.endsWith('/api')) {
+  rawBase = `${rawBase}/api`;
+}
+export const BASE_URL = rawBase;
 
 const getHeaders = () => {
   const token = localStorage.getItem('sre_auth_token');
