@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,18 +24,43 @@ export const Route = createFileRoute("/")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  useEffect(() => {
+    document.title = "Sign In | Sialkot Real Estate";
+  }, []);
   const [email, setEmail] = useState("a.khan@sre.pk");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("sre_auth", "1");
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("sre_auth_token", data.token);
+        window.localStorage.setItem("sre_user", JSON.stringify(data));
+      }
+      
+      toast.success("Successfully signed in");
+      navigate({ to: "/dashboard" });
+    } catch (error: any) {
+      toast.error(error.message);
+      setLoading(false);
     }
-    setTimeout(() => navigate({ to: "/dashboard" }), 350);
   };
 
   return (

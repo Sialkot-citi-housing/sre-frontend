@@ -5,6 +5,7 @@ import {
   CircleDot,
   Clock3,
   FileDown,
+  Settings,
   Layers,
   Plus,
   Pencil,
@@ -13,12 +14,20 @@ import {
   Phone,
   Users,
   ArrowUpRight,
+  Loader2,
+  MoreHorizontal,
+  Trash2,
 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "@tanstack/react-router";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +37,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -35,12 +51,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { fmtPKR, projects } from "@/lib/projects-data";
+import { fmtPKR } from "@/lib/projects-data";
+import { api } from "@/lib/api";
 import { AddRecordDialog } from "@/components/dialogs/add-record-dialog";
 import { EditRecordDialog, type EditValues } from "@/components/dialogs/edit-record-dialog";
 import {
-  useFinance,
-  financeActions,
   MATERIAL_CATEGORY_OPTIONS,
   CONTRACTOR_ROLES,
   type MaterialCategory,
@@ -53,16 +68,14 @@ import {
 } from "@/lib/finance-store";
 
 export const Route = createFileRoute("/projects/$projectId")({
-  loader: ({ params }) => {
-    const project = projects.find((p) => p.id === params.projectId);
-    if (!project) throw notFound();
-    return { project };
+  loader: async ({ params }) => {
+    return { projectId: params.projectId };
   },
   head: ({ loaderData }) => ({
     meta: [
       {
         title: loaderData
-          ? `${loaderData.project.plot} — Ledger | SRE`
+          ? `Project ${loaderData.projectId} Ledger | SRE`
           : "Project Ledger — SRE",
       },
     ],
@@ -116,13 +129,39 @@ function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string
 }
 
 function ProjectLedger() {
-  const { project } = Route.useLoaderData();
-  const store = useFinance();
-  const procurement = store.procurements.filter((p) => p.projectId === project.id);
-  const contractors = store.contractors.filter((c) => c.projectId === project.id);
-  const contractorIds = new Set(contractors.map((c) => c.id));
-  const contractorPayments = store.contractorPayments.filter((p) => contractorIds.has(p.contractorId));
-  const customerPayments = store.customerPayments.filter((p) => p.projectId === project.id);
+  const { projectId } = Route.useLoaderData();
+  const queryClient = useQueryClient();
+
+  const { data: project, isLoading: loadingProject } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: () => api.getProjectById(projectId),
+  });
+
+  const { data: procurement = [], isLoading: loadingProc } = useQuery({
+    queryKey: ["procurements", projectId],
+    queryFn: () => api.getProcurementsByProject(projectId),
+  });
+
+  useEffect(() => {
+    if (project?.plot) {
+      document.title = `${project.plot} | Sialkot Real Estate`;
+    } else {
+      document.title = "Project Ledger | Sialkot Real Estate";
+    }
+  }, [project?.plot]);
+
+  const { data: contractors = [], isLoading: loadingCont } = useQuery({
+    queryKey: ["contractors", projectId],
+    queryFn: () => api.getContractorsByProject(projectId),
+  });
+
+  const { data: payments, isLoading: loadingPay } = useQuery({
+    queryKey: ["payments", projectId],
+    queryFn: () => api.getPaymentsByProject(projectId),
+  });
+
+  const contractorPayments = payments?.contractorPayments || [];
+  const customerPayments = payments?.customerPayments || [];
 
   const [materialTab, setMaterialTab] = useState<string>("all");
   const [contractorTab, setContractorTab] = useState<string>(CONTRACTOR_ROLES[0]);
@@ -131,30 +170,104 @@ function ProjectLedger() {
   const [editContractorPaymentId, setEditContractorPaymentId] = useState<string | null>(null);
   const [editCustomerPaymentId, setEditCustomerPaymentId] = useState<string | null>(null);
   const [markedComplete, setMarkedComplete] = useState(false);
+  
+  const [editProjectOpen, setEditProjectOpen] = useState(false);
+  const [deleteProjectOpen, setDeleteProjectOpen] = useState(false);
+  const [editProjectName, setEditProjectName] = useState("");
+  const router = useRouter();
 
-  const contractPrice = project.budget;
-  const customerReceived = customerPayments.reduce((s, p) => s + p.amount, 0);
+  const { mutate: updateProject, isPending: isUpdatingProject } = useMutation({
+    mutationFn: (data: any) => api.updateProject(project._id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      setEditProjectOpen(false);
+      toast.success("Project updated successfully");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const { mutate: deleteProject, isPending: isDeletingProject } = useMutation({
+    mutationFn: () => api.deleteProject(project._id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Project deleted successfully");
+      router.navigate({ to: "/ledgers" });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const handleDeleteProcurement = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this procurement record?")) return;
+    try {
+      await api.deleteProcurement(id);
+      queryClient.invalidateQueries({ queryKey: ["procurements", projectId] });
+      toast.success("Procurement deleted");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleDeleteContractor = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this contractor?")) return;
+    try {
+      await api.deleteContractor(id);
+      queryClient.invalidateQueries({ queryKey: ["contractors", projectId] });
+      toast.success("Contractor deleted");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleDeleteContractorPayment = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this payment?")) return;
+    try {
+      await api.deleteContractorPayment(id);
+      queryClient.invalidateQueries({ queryKey: ["payments", projectId] });
+      toast.success("Payment deleted");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleDeleteCustomerPayment = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this payment?")) return;
+    try {
+      await api.deleteCustomerPayment(id);
+      queryClient.invalidateQueries({ queryKey: ["payments", projectId] });
+      toast.success("Payment deleted");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const isLoading = loadingProject || loadingProc || loadingCont || loadingPay;
+  if (isLoading) return <div className="p-10 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-[color:var(--sre-blue)]" /></div>;
+  if (!project) return <div>Project not found.</div>;
+
+  const contractPrice = project.budget || 0;
+  const customerReceived = customerPayments.reduce((s: any, p: any) => s + p.amount, 0);
   const customerBalance = Math.max(0, contractPrice - customerReceived);
 
-  const totalSpent = procurement.reduce((s, r) => s + r.quantity * r.rate, 0);
-  const filteredMaterial = materialTab === "all" ? procurement : procurement.filter((r) => r.category === materialTab);
-  const filteredTotal = filteredMaterial.reduce((s, r) => s + r.quantity * r.rate, 0);
-  const qtyByItem = filteredMaterial.reduce<Record<string, { qty: number; unit: string }>>((acc, r) => {
-    const key = `${r.item} (${r.unit})`;
+  const totalSpent = procurement.reduce((s: any, r: any) => s + r.quantity * r.rate, 0);
+  const filteredMaterial = materialTab === "all" ? procurement : procurement.filter((r: any) => r.category === materialTab);
+  const filteredTotal = filteredMaterial.reduce((s: any, r: any) => s + r.quantity * r.rate, 0);
+  const qtyByItem = filteredMaterial.reduce<Record<string, { qty: number; unit: string }>>((acc: any, r: any) => {
+    const key = `${r.category} (${r.unit})`;
     acc[key] = acc[key] ?? { qty: 0, unit: r.unit };
     acc[key].qty += r.quantity;
     return acc;
   }, {});
 
   const paidByContractor = (id: string) =>
-    contractorPayments.filter((p) => p.contractorId === id).reduce((s, p) => s + p.amount, 0);
+    contractorPayments.filter((p: any) => (p.contractorId || p.contractor) === id).reduce((s: any, p: any) => s + p.amount, 0);
 
-  const contractorsInTab = contractors.filter((c) => c.role === contractorTab);
-  const contractorsTotal = contractors.reduce((s, c) => s + c.agreedAmount, 0);
-  const contractorsPaid = contractors.reduce((s, c) => s + paidByContractor(c.id), 0);
+  const contractorsInTab = contractors.filter((c: any) => c.role === contractorTab);
+  const contractorsTotal = contractors.reduce((s: any, c: any) => s + c.agreedAmount, 0);
+  const contractorsPaid = contractors.reduce((s: any, c: any) => s + paidByContractor(c._id || c.id), 0);
 
-  const materialPaidTotal = procurement.reduce((s, r) => s + (r.paid || 0), 0);
-  const filteredPaid = filteredMaterial.reduce((s, r) => s + (r.paid || 0), 0);
+  const materialPaidTotal = procurement.reduce((s: any, r: any) => s + (r.paid || 0), 0);
+  const filteredPaid = filteredMaterial.reduce((s: any, r: any) => s + (r.paid || 0), 0);
 
   // CSV downloads (client-side)
   const downloadCSV = (filename: string, rows: (string | number)[][]) => {
@@ -181,14 +294,14 @@ function ProjectLedger() {
   const downloadContractorsCSV = () => {
     const rows: (string | number)[][] = [
       ["Role", "Name", "Contact", "Status", "Agreed (PKR)", "Paid (PKR)", "Balance (PKR)"],
-      ...contractors.map((c) => {
-        const paid = paidByContractor(c.id);
+      ...contractors.map((c: any) => {
+        const paid = paidByContractor(c._id || c.id);
         return [c.role, c.name, c.contact, c.status, c.agreedAmount, paid, Math.max(0, c.agreedAmount - paid)];
       }),
       [],
       ["Payment Date", "Contractor", "Role", "Amount (PKR)", "Note"],
       ...contractorPayments.map((p) => {
-        const c = contractors.find((x) => x.id === p.contractorId);
+        const c = contractors.find((x) => (x._id || x.id) === p.contractorId);
         return [p.date, c?.name ?? "—", c?.role ?? "—", p.amount, p.note];
       }),
     ];
@@ -207,7 +320,7 @@ function ProjectLedger() {
       label: `Timeline reached (Day ${project.dayCurrent} / ${project.dayTotal})`,
     },
     payments: {
-      ok: contractors.every((c) => paidByContractor(c.id) >= c.agreedAmount),
+      ok: contractors.every((c) => paidByContractor(c._id || c.id) >= c.agreedAmount),
       label: `All contractor balances cleared`,
     },
     holds: {
@@ -298,8 +411,14 @@ function ProjectLedger() {
               <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Project Workspace
               </div>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+              <h2 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
                 {project.plot} — {project.size} {project.phase}
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => {
+                  setEditProjectName(project.plot);
+                  setEditProjectOpen(true);
+                }}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
               </h2>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <Badge className="bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]">
@@ -315,11 +434,11 @@ function ProjectLedger() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-1.5">
-                    <FileDown className="h-4 w-4" /> Download Report
+                    <Settings className="h-4 w-4" /> Project Actions
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Choose report</DropdownMenuLabel>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel>Download Reports</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => downloadMaterialsCSV()}>
                     Materials &amp; Labour (CSV)
@@ -330,21 +449,59 @@ function ProjectLedger() {
                   <DropdownMenuItem onClick={() => downloadCustomerCSV()}>
                     Customer Payments (CSV)
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {!markedComplete ? (
+                    <DropdownMenuItem onClick={() => setMarkedComplete(true)} className="text-emerald-600">
+                      Mark Project as Complete
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem disabled className="text-emerald-600">
+                      Project is Completed
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => setDeleteProjectOpen(true)} className="text-red-600">
+                    Delete Project Workspace
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              {!markedComplete ? (
-                <Button
-                  onClick={() => setMarkedComplete(true)}
-                  className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
-                >
-                  <CheckCircle2 className="h-4 w-4" /> Mark as Complete
-                </Button>
-              ) : (
-                <Button disabled variant="outline" className="gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-700">
-                  <CheckCircle2 className="h-4 w-4" /> Completed
-                </Button>
-              )}
             </div>
+            
+            <Dialog open={editProjectOpen} onOpenChange={setEditProjectOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Project Name</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                  <Label>Project / Plot Name</Label>
+                  <Input value={editProjectName} onChange={(e) => setEditProjectName(e.target.value)} />
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setEditProjectOpen(false)}>Cancel</Button>
+                  <Button onClick={() => updateProject({ plot: editProjectName })} disabled={isUpdatingProject || !editProjectName}>
+                    {isUpdatingProject && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={deleteProjectOpen} onOpenChange={setDeleteProjectOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete Project</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                  <p className="text-sm text-muted-foreground">
+                    Are sure you want to delete this project? You can append this project in history.
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setDeleteProjectOpen(false)}>Cancel</Button>
+                  <Button variant="destructive" onClick={() => deleteProject()} disabled={isDeletingProject}>
+                    {isDeletingProject && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Project
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -386,13 +543,16 @@ function ProjectLedger() {
                 { key: "note", label: "Note", type: "text", placeholder: "e.g. Grey structure milestone" },
               ]}
               onSubmit={(v) =>
-                financeActions.addCustomerPayment({
-                  projectId: project.id,
+                api.addCustomerPayment({
+                  project: project._id,
                   date: String(v.date),
                   amount: Number(v.amount) || 0,
-                  method: v.method as CustomerPayment["method"],
+                  method: v.method,
                   note: String(v.note ?? ""),
-                })
+                }).then(() => {
+                  queryClient.invalidateQueries({ queryKey: ["payments"] });
+                  toast.success("Payment recorded");
+                }).catch(e => toast.error(e.message))
               }
             />
           </div>
@@ -400,7 +560,7 @@ function ProjectLedger() {
             <StatTile icon={<Layers className="h-4 w-4" />} label="Contract price" value={`PKR ${fmtPKR(contractPrice)}`} />
             <StatTile icon={<ArrowUpRight className="h-4 w-4" />} label="Received to date" value={`PKR ${fmtPKR(customerReceived)}`} />
             <StatTile icon={<Wallet className="h-4 w-4" />} label="Balance due" value={`PKR ${fmtPKR(customerBalance)}`} />
-            <StatTile icon={<CheckCircle2 className="h-4 w-4" />} label="% Received" value={`${((customerReceived / contractPrice) * 100).toFixed(1)}%`} />
+            <StatTile icon={<CheckCircle2 className="h-4 w-4" />} label="% Received" value={`${contractPrice > 0 ? ((customerReceived / contractPrice) * 100).toFixed(1) : 0}%`} />
           </div>
           <div className="overflow-x-auto">
             <Table>
@@ -421,9 +581,21 @@ function ProjectLedger() {
                     <TableCell className="text-sm text-muted-foreground">{p.method}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{p.note || "—"}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditCustomerPaymentId(p.id)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Open menu">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[160px]">
+                          <DropdownMenuItem onClick={() => setEditCustomerPaymentId(p.id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDeleteCustomerPayment(p.id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -469,17 +641,7 @@ function ProjectLedger() {
                 { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
               ]}
               onSubmit={(v) =>
-                financeActions.addProcurement({
-                  projectId: project.id,
-                  date: String(v.date),
-                  item: String(v.item),
-                  category: v.category as MaterialCategory,
-                  quantity: Number(v.quantity) || 0,
-                  unit: String(v.unit),
-                  rate: Number(v.rate) || 0,
-                  vendor: String(v.vendor),
-                  paid: Number(v.paid) || 0,
-                })
+                api.addProcurement({ project: project._id, date: String(v.date), item: String(v.item), category: v.category, quantity: Number(v.quantity) || 0, unit: String(v.unit), rate: Number(v.rate) || 0, vendor: String(v.vendor), paid: Number(v.paid) || 0 }).then(() => { queryClient.invalidateQueries({ queryKey: ["procurements"] }); toast.success("Procurement added"); }).catch(e => toast.error(e.message))
               }
             />
           </div>
@@ -528,33 +690,68 @@ function ProjectLedger() {
                       <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(row.paid)}</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, row.quantity * row.rate - row.paid))}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit entry" onClick={() => setEditProcurementId(row.id)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Open menu">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-[160px]">
+                            <DropdownMenuItem onClick={() => setEditProcurementId(row.id || row._id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteProcurement(row.id || row._id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
                 })}
-                {materialTab === "all" && contractors.map((c) => {
-                  const paid = paidByContractor(c.id);
+                {materialTab === "all" && contractorPayments.map((p) => {
+                  const pContractor = p.contractorId || p.contractor;
+                  const c = contractors.find(x => x._id === pContractor || x.id === pContractor);
+                  if (!c) return null;
+                  
+                  const paymentsForThisContractor = contractorPayments.filter(
+                    (x: any) => (x.contractorId || x.contractor) === pContractor
+                  );
+                  const pIndex = paymentsForThisContractor.findIndex(x => (x._id || x.id) === (p._id || p.id));
+                  const paidUpToThis = paymentsForThisContractor
+                    .slice(0, pIndex + 1)
+                    .reduce((sum: any, x: any) => sum + x.amount, 0);
+
                   return (
-                    <TableRow key={`ov-${c.id}`} className="border-border bg-[color:var(--sre-blue)]/5 hover:bg-[color:var(--sre-blue)]/10">
-                      <TableCell className="text-sm text-muted-foreground">—</TableCell>
+                    <TableRow key={`cp-${p._id || p.id}`} className="border-border bg-[color:var(--sre-blue)]/5 hover:bg-[color:var(--sre-blue)]/10">
+                      <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{p.date}</TableCell>
                       <TableCell>
-                        <div className="font-medium text-foreground">{c.name}</div>
+                        <div className="font-medium text-foreground">Payment to {c.name}</div>
                         <div className="text-[11px] text-[color:var(--sre-blue)]">Contractor · {c.role}</div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{c.contact}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{p.method}</TableCell>
                       <TableCell className="text-right text-muted-foreground">—</TableCell>
                       <TableCell className="text-muted-foreground">—</TableCell>
                       <TableCell className="text-right text-muted-foreground">—</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(c.agreedAmount)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(paid)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, c.agreedAmount - paid))}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(p.amount)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, c.agreedAmount - paidUpToThis))}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorId(c.id)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Open menu">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-[160px]">
+                            <DropdownMenuItem onClick={() => setEditContractorPaymentId(p._id || p.id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteContractorPayment(p._id || p.id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
@@ -629,14 +826,7 @@ function ProjectLedger() {
                   { key: "agreedAmount", label: "Agreed Amount (PKR)", type: "number", required: true },
                 ]}
                 onSubmit={(v) =>
-                  financeActions.addContractor({
-                    projectId: project.id,
-                    role: v.role as ContractorRole,
-                    name: String(v.name),
-                    contact: String(v.contact),
-                    agreedAmount: Number(v.agreedAmount) || 0,
-                    status: v.status as Contractor["status"],
-                  })
+                  api.addContractor({ project: project._id, role: v.role, name: String(v.name), contact: String(v.contact), agreedAmount: Number(v.agreedAmount) || 0, status: v.status }).then(() => { queryClient.invalidateQueries({ queryKey: ["contractors"] }); toast.success("Contractor added"); }).catch(e => toast.error(e.message))
                 }
               />
             </div>
@@ -679,7 +869,7 @@ function ProjectLedger() {
               </TableHeader>
               <TableBody>
                 {contractorsInTab.map((c) => {
-                  const paid = paidByContractor(c.id);
+                  const paid = paidByContractor(c._id || c.id);
                   return (
                     <TableRow key={c.id} className="border-border transition-colors hover:bg-accent/40">
                       <TableCell className="font-medium text-foreground">{c.name}</TableCell>
@@ -710,17 +900,24 @@ function ProjectLedger() {
                               { key: "note", label: "Note (optional)", type: "text", placeholder: "e.g. Slab milestone" },
                             ]}
                             onSubmit={(v) =>
-                              financeActions.addContractorPayment({
-                                contractorId: c.id,
-                                date: String(v.date),
-                                amount: Number(v.amount) || 0,
-                                note: String(v.note ?? ""),
-                              })
+                              api.addContractorPayment({ contractor: c._id || c.id, project: project._id, date: String(v.date), amount: Number(v.amount) || 0, note: String(v.note ?? "") }).then(() => { queryClient.invalidateQueries({ queryKey: ["payments"] }); toast.success("Payment recorded"); }).catch(e => toast.error(e.message))
                             }
                           />
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit contractor" onClick={() => setEditContractorId(c.id)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Open menu">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[160px]">
+                              <DropdownMenuItem onClick={() => setEditContractorId(c.id || c._id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
+                                <Pencil className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeleteContractor(c.id || c._id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -758,9 +955,10 @@ function ProjectLedger() {
                   </TableHeader>
                   <TableBody>
                     {contractorPayments
-                      .filter((p) => contractorsInTab.some((c) => c.id === p.contractorId))
+                      .filter((p) => contractorsInTab.some((c) => (c._id || c.id) === (p.contractorId || p.contractor)))
                       .map((p) => {
-                        const c = contractors.find((x) => x.id === p.contractorId);
+                        const pContractor = p.contractorId || p.contractor;
+                        const c = contractors.find((x) => (x._id || x.id) === pContractor);
                         return (
                           <TableRow key={p.id} className="border-border">
                             <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{p.date}</TableCell>
@@ -768,14 +966,26 @@ function ProjectLedger() {
                             <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(p.amount)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{p.note || "—"}</TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-[color:var(--sre-blue)]" aria-label="Edit payment" onClick={() => setEditContractorPaymentId(p.id)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Open menu">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-[160px]">
+                                  <DropdownMenuItem onClick={() => setEditContractorPaymentId(p._id || p.id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
+                                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDeleteContractorPayment(p._id || p.id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </TableCell>
                           </TableRow>
                         );
                       })}
-                    {contractorPayments.filter((p) => contractorsInTab.some((c) => c.id === p.contractorId)).length === 0 && (
+                    {contractorPayments.filter((p) => contractorsInTab.some((c) => (c._id || c.id) === (p.contractorId || p.contractor))).length === 0 && (
                       <TableRow>
                         <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
                           No payments recorded for this trade yet.
@@ -817,12 +1027,12 @@ function ProjectLedger() {
         ]}
         values={
           editProcurementId
-            ? (procurement.find((r) => r.id === editProcurementId) as unknown as EditValues) ?? null
+            ? (procurement.find((r) => r.id === editProcurementId || r._id === editProcurementId) as unknown as EditValues) ?? null
             : null
         }
         onSave={(next) => {
           if (!editProcurementId) return;
-          financeActions.updateProcurement(editProcurementId, next as unknown as Partial<Procurement>);
+          api.updateProcurement(editProcurementId, next).then(() => { queryClient.invalidateQueries({ queryKey: ["procurements"] }); setEditProcurementId(null); toast.success("Updated"); }).catch(e => toast.error(e.message));
         }}
       />
 
@@ -839,12 +1049,12 @@ function ProjectLedger() {
         ]}
         values={
           editContractorId
-            ? (contractors.find((c) => c.id === editContractorId) as unknown as EditValues) ?? null
+            ? (contractors.find((c) => c.id === editContractorId || c._id === editContractorId) as unknown as EditValues) ?? null
             : null
         }
         onSave={(next) => {
           if (!editContractorId) return;
-          financeActions.updateContractor(editContractorId, next as unknown as Partial<Contractor>);
+          api.updateContractor(editContractorId, next).then(() => { queryClient.invalidateQueries({ queryKey: ["contractors"] }); setEditContractorId(null); toast.success("Updated"); }).catch(e => toast.error(e.message));
         }}
       />
 
@@ -859,12 +1069,12 @@ function ProjectLedger() {
         ]}
         values={
           editContractorPaymentId
-            ? (contractorPayments.find((p) => p.id === editContractorPaymentId) as unknown as EditValues) ?? null
+            ? (contractorPayments.find((p) => p.id === editContractorPaymentId || p._id === editContractorPaymentId) as unknown as EditValues) ?? null
             : null
         }
         onSave={(next) => {
           if (!editContractorPaymentId) return;
-          financeActions.updateContractorPayment(editContractorPaymentId, next as unknown as Partial<ContractorPayment>);
+          api.updateContractorPayment(editContractorPaymentId, next).then(() => { queryClient.invalidateQueries({ queryKey: ["payments"] }); setEditContractorPaymentId(null); toast.success("Updated"); }).catch(e => toast.error(e.message));
         }}
       />
 
@@ -880,12 +1090,12 @@ function ProjectLedger() {
         ]}
         values={
           editCustomerPaymentId
-            ? (customerPayments.find((p) => p.id === editCustomerPaymentId) as unknown as EditValues) ?? null
+            ? (customerPayments.find((p) => p.id === editCustomerPaymentId || p._id === editCustomerPaymentId) as unknown as EditValues) ?? null
             : null
         }
         onSave={(next) => {
           if (!editCustomerPaymentId) return;
-          financeActions.updateCustomerPayment(editCustomerPaymentId, next as unknown as Partial<CustomerPayment>);
+          api.updateCustomerPayment(editCustomerPaymentId, next).then(() => { queryClient.invalidateQueries({ queryKey: ["payments"] }); setEditCustomerPaymentId(null); toast.success("Updated"); }).catch(e => toast.error(e.message));
         }}
       />
     </AppShell>

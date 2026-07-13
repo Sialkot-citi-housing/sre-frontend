@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { useEffect } from "react";
+import { Plus, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/app-shell";
 import { ProjectCard } from "@/components/project-card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { projects } from "@/lib/projects-data";
+import { api } from "@/lib/api";
 import { NewProjectDialog } from "@/components/dialogs/new-project-dialog";
 
 export const Route = createFileRoute("/ledgers")({
@@ -22,15 +24,28 @@ export const Route = createFileRoute("/ledgers")({
 });
 
 function ProjectsPortfolio() {
-  const active = projects.filter((p) => p.status === "active");
-  const completed = projects.filter((p) => p.status === "completed");
+  useEffect(() => {
+    document.title = "Project Ledgers | Sialkot Real Estate";
+  }, []);
+  const { data: projects = [], isLoading } = useQuery({
+    queryKey: ["projects"],
+    queryFn: api.getProjects,
+  });
+
+  const active = projects.filter((p: any) => p.status === "active");
+  const completed = projects.filter((p: any) => p.status === "completed");
 
   return (
     <AppShell
       title="Projects Portfolio"
       subtitle="Track every active build and review completed handovers"
     >
-      <Tabs defaultValue="active" className="space-y-6">
+      {isLoading ? (
+        <div className="flex min-h-[400px] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[color:var(--sre-blue)]" />
+        </div>
+      ) : (
+        <Tabs defaultValue="active" className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <TabsList className="bg-card border border-border">
             <TabsTrigger value="active" className="data-[state=active]:bg-[color:var(--sre-blue)] data-[state=active]:text-primary-foreground">
@@ -58,20 +73,21 @@ function ProjectsPortfolio() {
 
         <TabsContent value="active" className="mt-0">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {active.map((p) => (
-              <ProjectCard key={p.id} project={p} />
+            {active.map((p: any) => (
+              <ProjectCard key={p._id || p.id} project={p} />
             ))}
           </div>
         </TabsContent>
 
         <TabsContent value="completed" className="mt-0">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {completed.map((p) => (
-              <ProjectCard key={p.id} project={p} />
+            {completed.map((p: any) => (
+              <ProjectCard key={p._id || p.id} project={p} />
             ))}
           </div>
         </TabsContent>
       </Tabs>
+      )}
     </AppShell>
   );
 }

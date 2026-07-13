@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Wallet,
   Plus,
@@ -8,7 +8,11 @@ import {
   CalendarDays,
   Building2,
   Landmark,
+  Loader2,
 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -40,10 +44,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fmtPKR, projects } from "@/lib/projects-data";
+import { fmtPKR } from "@/lib/projects-data";
 import {
-  useFinance,
-  financeActions,
   today,
   MATERIAL_CATEGORY_OPTIONS,
   OFFICE_EXPENSE_CATEGORIES,
@@ -111,11 +113,22 @@ function StatTile({
 }
 
 function AddFundDialog() {
+  const queryClient = useQueryClient();
+
+  const { mutate: addFund, isPending } = useMutation({
+    mutationFn: api.addFund,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["funds"] });
+      toast.success("Fund recorded successfully.");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   return (
     <AddRecordDialog
       trigger={
-        <Button size="sm" variant="outline" className="gap-1.5">
-          <Plus className="h-4 w-4" /> Record Fund
+        <Button size="sm" variant="outline" className="gap-1.5" disabled={isPending}>
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Record Fund
         </Button>
       }
       title="Fund Received from Owner"
@@ -130,7 +143,7 @@ function AddFundDialog() {
         { key: "note", label: "Note", type: "text", placeholder: "e.g. Weekly float" },
       ]}
       onSubmit={(v) =>
-        financeActions.addFund({
+        addFund({
           date: String(v.date),
           amount: Number(v.amount) || 0,
           method: v.method as "Cash" | "Bank Transfer" | "Cheque",
@@ -142,11 +155,11 @@ function AddFundDialog() {
   );
 }
 
-function AddExpenseDialog() {
-  const store = useFinance();
+function AddExpenseDialog({ projects, contractors }: { projects: any[]; contractors: any[] }) {
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<"project" | "office">("project");
-  const [projectId, setProjectId] = useState<string>(projects[0]?.id ?? "");
+  const [projectId, setProjectId] = useState<string>(projects[0]?._id ?? "");
   const [spendType, setSpendType] = useState<"material" | "contractor">("material");
 
   const [date, setDate] = useState(today());
@@ -168,7 +181,8 @@ function AddExpenseDialog() {
   const [contractorId, setContractorId] = useState<string>("");
   const [note, setNote] = useState("");
 
-  const projectContractors = store.contractors.filter((c) => c.projectId === projectId);
+  const projectContractors = contractors.filter((c) => c.project === projectId);
+  const [isPending, setIsPending] = useState(false);
 
   const reset = () => {
     setDate(today());
@@ -185,40 +199,52 @@ function AddExpenseDialog() {
     setNote("");
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (scope === "office") {
-      financeActions.addOfficeExpense({
-        date,
-        category: officeCategory,
-        description,
-        paidTo,
-        method,
-        amount: Number(amount) || 0,
-      });
-    } else if (spendType === "material") {
-      financeActions.addProcurement({
-        projectId,
-        date,
-        item,
-        category: matCategory,
-        quantity: Number(quantity) || 0,
-        unit,
-        rate: Number(rate) || 0,
-        vendor,
-        paid: Number(paid) || 0,
-      });
-    } else {
-      if (!contractorId) return;
-      financeActions.addContractorPayment({
-        contractorId,
-        date,
-        amount: Number(amount) || 0,
-        note,
-      });
+    setIsPending(true);
+    try {
+      if (scope === "office") {
+        await api.addOfficeExpense({
+          date,
+          category: officeCategory,
+          description,
+          paidTo,
+          method,
+          amount: Number(amount) || 0,
+        });
+        queryClient.invalidateQueries({ queryKey: ["officeExpenses"] });
+      } else if (spendType === "material") {
+        await api.addProcurement({
+          project: projectId,
+          date,
+          item,
+          category: matCategory,
+          quantity: Number(quantity) || 0,
+          unit,
+          rate: Number(rate) || 0,
+          vendor,
+          paid: Number(paid) || 0,
+        });
+        queryClient.invalidateQueries({ queryKey: ["procurements"] });
+      } else {
+        if (!contractorId) return;
+        await api.addContractorPayment({
+          contractor: contractorId,
+          project: projectId,
+          date,
+          amount: Number(amount) || 0,
+          note,
+        });
+        queryClient.invalidateQueries({ queryKey: ["contractorPayments"] });
+      }
+      toast.success("Expense recorded successfully.");
+      reset();
+      setOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to record expense");
+    } finally {
+      setIsPending(false);
     }
-    reset();
-    setOpen(false);
   };
 
   return (
@@ -255,10 +281,10 @@ function AddExpenseDialog() {
                 <div className="grid gap-2">
                   <Label>Project</Label>
                   <Select value={projectId} onValueChange={setProjectId}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
                     <SelectContent>
                       {projects.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.plot} — {p.client}</SelectItem>
+                        <SelectItem key={p._id} value={p._id}>{p.plot} — {p.client}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -324,7 +350,7 @@ function AddExpenseDialog() {
                           <SelectItem value="_none" disabled>No contractors on this project</SelectItem>
                         )}
                         {projectContractors.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.role} — {c.name}</SelectItem>
+                          <SelectItem key={c._id} value={c._id}>{c.role} — {c.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -380,9 +406,9 @@ function AddExpenseDialog() {
           )}
 
           <DialogFooter className="gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" className="bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
-              Save Expense
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={isPending}>Cancel</Button>
+            <Button type="submit" disabled={isPending} className="bg-[color:var(--sre-blue)] text-primary-foreground hover:bg-[color:var(--sre-blue)]/90">
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Expense
             </Button>
           </DialogFooter>
         </form>
@@ -392,48 +418,59 @@ function AddExpenseDialog() {
 }
 
 function OfficeExpenses() {
-  const store = useFinance();
+  useEffect(() => {
+    document.title = "Office Expenses | Sialkot Real Estate";
+  }, []);
   const [tab, setTab] = useState<"all" | "project" | "office">("all");
 
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({ queryKey: ["projects"], queryFn: api.getProjects });
+  const { data: contractors = [], isLoading: isLoadingContractors } = useQuery({ queryKey: ["contractors"], queryFn: api.getAllContractors });
+  const { data: procurements = [], isLoading: isLoadingProcurements } = useQuery({ queryKey: ["procurements"], queryFn: api.getAllProcurements });
+  const { data: contractorPayments = [], isLoading: isLoadingPayments } = useQuery({ queryKey: ["contractorPayments"], queryFn: api.getAllContractorPayments });
+  const { data: funds = [], isLoading: isLoadingFunds } = useQuery({ queryKey: ["funds"], queryFn: api.getFunds });
+  const { data: officeExpenses = [], isLoading: isLoadingOffice } = useQuery({ queryKey: ["officeExpenses"], queryFn: api.getOfficeExpenses });
+
+  const isLoading = isLoadingProjects || isLoadingContractors || isLoadingProcurements || isLoadingPayments || isLoadingFunds || isLoadingOffice;
+
   const projectById = useMemo(
-    () => Object.fromEntries(projects.map((p) => [p.id, p])),
-    [],
+    () => Object.fromEntries(projects.map((p: any) => [p._id, p])),
+    [projects],
   );
   const contractorById = useMemo(
-    () => Object.fromEntries(store.contractors.map((c) => [c.id, c])),
-    [store.contractors],
+    () => Object.fromEntries(contractors.map((c: any) => [c._id, c])),
+    [contractors],
   );
 
   // Unified expense rows
   const rows: Row[] = useMemo(() => {
     const list: Row[] = [];
-    store.procurements.forEach((p) => {
+    procurements.forEach((p: any) => {
       if (!p.paid) return;
       list.push({
-        id: `mat-${p.id}`,
+        id: `mat-${p._id}`,
         date: p.date,
-        project: projectById[p.projectId]?.plot ?? "—",
+        project: projectById[p.project]?.plot ?? "—",
         type: "Material",
         description: p.item,
         detail: `${p.quantity} ${p.unit} @ ${fmtPKR(p.rate)} · Vendor: ${p.vendor}`,
         amount: p.paid,
       });
     });
-    store.contractorPayments.forEach((cp) => {
-      const c = contractorById[cp.contractorId];
+    contractorPayments.forEach((cp: any) => {
+      const c = contractorById[cp.contractor];
       list.push({
-        id: `con-${cp.id}`,
+        id: `con-${cp._id}`,
         date: cp.date,
-        project: c ? projectById[c.projectId]?.plot ?? "—" : "—",
+        project: c ? projectById[c.project]?.plot ?? "—" : "—",
         type: "Contractor",
         description: c ? `${c.role} — ${c.name}` : "Contractor payment",
         detail: cp.note || "—",
         amount: cp.amount,
       });
     });
-    store.officeExpenses.forEach((e) => {
+    officeExpenses.forEach((e: any) => {
       list.push({
-        id: `off-${e.id}`,
+        id: `off-${e._id}`,
         date: e.date,
         project: "Office",
         type: "Office",
@@ -443,18 +480,28 @@ function OfficeExpenses() {
       });
     });
     return list.sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [store, projectById, contractorById]);
+  }, [procurements, contractorPayments, officeExpenses, projectById, contractorById]);
 
   const filtered = rows.filter((r) =>
     tab === "all" ? true : tab === "office" ? r.type === "Office" : r.type !== "Office",
   );
 
-  const totalFunds = store.funds.reduce((s, f) => s + f.amount, 0);
+  const totalFunds = funds.reduce((s: number, f: any) => s + f.amount, 0);
   const totalSpent = rows.reduce((s, r) => s + r.amount, 0);
   const balance = totalFunds - totalSpent;
   const todayStr = today();
   const spentToday = rows.filter((r) => r.date === todayStr).reduce((s, r) => s + r.amount, 0);
   const filteredTotal = filtered.reduce((s, r) => s + r.amount, 0);
+
+  if (isLoading) {
+    return (
+      <AppShell title="Office Cash & Expenses" subtitle="Accountant cash book — funds from owner and every rupee spent">
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[color:var(--sre-blue)]" />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
@@ -478,7 +525,7 @@ function OfficeExpenses() {
             </div>
             <div className="flex flex-wrap gap-2">
               <AddFundDialog />
-              <AddExpenseDialog />
+              <AddExpenseDialog projects={projects} contractors={contractors} />
             </div>
           </div>
 
@@ -516,8 +563,8 @@ function OfficeExpenses() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {store.funds.map((f) => (
-                  <TableRow key={f.id} className="border-border">
+                {funds.map((f: any) => (
+                  <TableRow key={f._id} className="border-border">
                     <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{f.date}</TableCell>
                     <TableCell className="text-sm text-foreground">{f.from}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{f.method}</TableCell>
@@ -525,7 +572,7 @@ function OfficeExpenses() {
                     <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(f.amount)}</TableCell>
                   </TableRow>
                 ))}
-                {store.funds.length === 0 && (
+                {funds.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
                       No funds recorded yet.
@@ -536,7 +583,7 @@ function OfficeExpenses() {
             </Table>
           </div>
           <div className="flex justify-between border-t border-border bg-secondary/40 px-6 py-3 text-sm">
-            <span className="text-muted-foreground">{store.funds.length} entries</span>
+            <span className="text-muted-foreground">{funds.length} entries</span>
             <span className="font-semibold text-foreground">
               Total received: <span className="text-emerald-700">PKR {fmtPKR(totalFunds)}</span>
             </span>
@@ -557,7 +604,7 @@ function OfficeExpenses() {
                 </p>
               </div>
             </div>
-            <AddExpenseDialog />
+            <AddExpenseDialog projects={projects} contractors={contractors} />
           </div>
           <div className="border-b border-border px-6 py-3">
             <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>

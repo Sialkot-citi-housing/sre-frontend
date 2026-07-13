@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, AlertTriangle, Building2, FileText, TrendingUp, Users, Wallet } from "lucide-react";
+import { useEffect } from "react";
+import { Activity, AlertTriangle, Building2, FileText, TrendingUp, Users, Wallet, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { fmtPKR, projects } from "@/lib/projects-data";
+import { fmtPKR } from "@/lib/projects-data";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import {
   Bar,
   BarChart,
@@ -28,15 +31,6 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-const monthlySpend = [
-  { month: "Jan", spend: 3_120_000 },
-  { month: "Feb", spend: 4_480_000 },
-  { month: "Mar", spend: 5_210_000 },
-  { month: "Apr", spend: 4_920_000 },
-  { month: "May", spend: 6_350_000 },
-  { month: "Jun", spend: 7_180_000 },
-];
-
 const phaseColors: Record<string, string> = {
   Foundation: "#93B4E8",
   "Grey Structure": "#1958B9",
@@ -44,22 +38,14 @@ const phaseColors: Record<string, string> = {
   Handover: "#C11C1C",
 };
 
-type Activity = {
+type ActivityItem = {
   type: "alert" | "receipt" | "labour" | "vendor" | "milestone";
   message: string;
   time: string;
+  timestamp: number;
 };
 
-const activities: Activity[] = [
-  { type: "alert", message: "Cement rates increased by 2% today across Sialkot suppliers", time: "12 min ago" },
-  { type: "receipt", message: "New receipt uploaded for Plot 142 — 50 bags Lucky Cement", time: "1 hr ago" },
-  { type: "labour", message: "Labour attendance logged for Plot 88 — 14 workers on site", time: "3 hr ago" },
-  { type: "vendor", message: "Ittefaq Steel delivered 1.2 Ton Grade-60 Serya to Plot 142", time: "5 hr ago" },
-  { type: "milestone", message: "Plot 27 reached 60% of allotted timeline", time: "Yesterday" },
-  { type: "alert", message: "Plot 204 budget utilisation crossed 83% threshold", time: "Yesterday" },
-];
-
-const activityIcon: Record<Activity["type"], { icon: typeof FileText; cls: string }> = {
+const activityIcon: Record<ActivityItem["type"], { icon: typeof FileText; cls: string }> = {
   alert: { icon: AlertTriangle, cls: "bg-[color:var(--sre-red)]/10 text-[color:var(--sre-red)]" },
   receipt: { icon: FileText, cls: "bg-[color:var(--sre-blue)]/10 text-[color:var(--sre-blue)]" },
   labour: { icon: Users, cls: "bg-emerald-50 text-emerald-700" },
@@ -67,24 +53,135 @@ const activityIcon: Record<Activity["type"], { icon: typeof FileText; cls: strin
   milestone: { icon: TrendingUp, cls: "bg-secondary text-foreground" },
 };
 
+function getMonthName(dateString: string) {
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return "Unknown";
+  return d.toLocaleString('default', { month: 'short' });
+}
+
+function timeAgo(date: Date) {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + " years ago";
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + " months ago";
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + " days ago";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + " hours ago";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + " minutes ago";
+  return "Just now";
+}
+
 function Dashboard() {
-  const active = projects.filter((p) => p.status === "active");
-  const totalSpent = projects.reduce((s, p) => s + p.spent, 0);
-  const totalBudget = projects.reduce((s, p) => s + p.budget, 0);
+  const { data: projects = [], isLoading: pLoad } = useQuery({ queryKey: ["projects"], queryFn: api.getProjects });
+  const { data: procurements = [], isLoading: rLoad } = useQuery({ queryKey: ["procurements"], queryFn: api.getAllProcurements });
+  const { data: payments = [], isLoading: payLoad } = useQuery({ queryKey: ["contractorPayments"], queryFn: api.getAllContractorPayments });
+
+  useEffect(() => {
+    document.title = "Dashboard | Sialkot Real Estate";
+  }, []);
+
+  if (pLoad || rLoad || payLoad) {
+    return (
+      <AppShell title="Dashboard" subtitle="Portfolio overview at a glance">
+        <div className="flex h-[40vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[color:var(--sre-blue)]" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  // KPIs
+  const activeProjects = projects.filter((p: any) => p.status === "active" || p.status !== "completed");
+  const totalBudget = projects.reduce((sum: number, p: any) => sum + (p.budget || 0), 0);
+  
+  const procurementSpend = procurements.reduce((sum: number, p: any) => sum + (p.quantity * p.rate || 0), 0);
+  const paymentSpend = payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+  const totalSpent = procurementSpend + paymentSpend;
 
   const tiles = [
-    { icon: Building2, label: "Active projects", value: String(active.length) },
+    { icon: Building2, label: "Active projects", value: String(activeProjects.length) },
     { icon: Wallet, label: "Spent across portfolio", value: `PKR ${fmtPKR(totalSpent)}` },
     { icon: TrendingUp, label: "Portfolio budget", value: `PKR ${fmtPKR(totalBudget)}` },
-    { icon: Activity, label: "Avg. budget used", value: `${((totalSpent / totalBudget) * 100).toFixed(1)}%` },
+    { icon: Activity, label: "Avg. budget used", value: totalBudget > 0 ? `${((totalSpent / totalBudget) * 100).toFixed(1)}%` : "0%" },
   ];
 
+  // Projects by Phase
   const phaseData = Object.entries(
-    projects.reduce<Record<string, number>>((acc, p) => {
+    activeProjects.reduce((acc: Record<string, number>, p: any) => {
       acc[p.phase] = (acc[p.phase] ?? 0) + 1;
       return acc;
     }, {}),
   ).map(([name, value]) => ({ name, value }));
+
+  // Monthly Spend Chart
+  const monthsData: Record<string, number> = {};
+  procurements.forEach((p: any) => {
+    if (!p.date) return;
+    const m = getMonthName(p.date);
+    monthsData[m] = (monthsData[m] || 0) + (p.quantity * p.rate || 0);
+  });
+  
+  // Sort months properly (last 6 months)
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const currentMonthIndex = new Date().getMonth();
+  const sortedMonthlySpend = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(currentMonthIndex - i);
+    const m = monthNames[d.getMonth()];
+    sortedMonthlySpend.push({ month: m, spend: monthsData[m] || 0 });
+  }
+
+  // Generate Activities dynamically
+  let activities: ActivityItem[] = [];
+
+  projects.forEach((p: any) => {
+    const d = new Date(p.createdAt || p.startedAt || new Date());
+    activities.push({
+      type: "milestone",
+      message: `New workspace created for ${p.plot}`,
+      time: timeAgo(d),
+      timestamp: d.getTime()
+    });
+  });
+
+  procurements.forEach((p: any) => {
+    const d = new Date(p.date || new Date());
+    const proj = projects.find((proj: any) => proj._id === p.project || proj.id === p.project);
+    const projName = proj ? proj.plot : "a project";
+    activities.push({
+      type: "receipt",
+      message: `Procurement: ${p.quantity} ${p.unit} of ${p.item} added to ${projName}`,
+      time: timeAgo(d),
+      timestamp: d.getTime()
+    });
+  });
+
+  payments.forEach((p: any) => {
+    const d = new Date(p.date || new Date());
+    activities.push({
+      type: "vendor",
+      message: `Contractor Payment: PKR ${fmtPKR(p.amount)} recorded via ${p.method}`,
+      time: timeAgo(d),
+      timestamp: d.getTime()
+    });
+  });
+
+  // Sort and take top 6
+  activities.sort((a, b) => b.timestamp - a.timestamp);
+  const topActivities = activities.slice(0, 6);
+
+  if (topActivities.length === 0) {
+    topActivities.push({
+      type: "alert",
+      message: "No recent activity found. Start adding records to see them here.",
+      time: "Just now",
+      timestamp: new Date().getTime()
+    });
+  }
 
   return (
     <AppShell title="Dashboard" subtitle="Portfolio overview at a glance">
@@ -112,7 +209,7 @@ function Dashboard() {
         </div>
         <div className="mt-5 h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthlySpend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <BarChart data={sortedMonthlySpend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="barBlue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#1958B9" stopOpacity={0.95} />
@@ -178,6 +275,7 @@ function Dashboard() {
               </ResponsiveContainer>
             </div>
             <ul className="flex-1 space-y-2 text-sm">
+              {phaseData.length === 0 && <li className="text-muted-foreground">No active projects</li>}
               {phaseData.map((p) => (
                 <li key={p.name} className="flex items-center justify-between gap-3">
                   <span className="flex items-center gap-2 text-foreground">
@@ -205,7 +303,7 @@ function Dashboard() {
             </button>
           </div>
           <ul className="mt-4 divide-y divide-border">
-            {activities.map((a, i) => {
+            {topActivities.map((a, i) => {
               const { icon: Icon, cls } = activityIcon[a.type];
               return (
                 <li

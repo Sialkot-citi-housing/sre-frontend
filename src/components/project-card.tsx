@@ -5,13 +5,13 @@ import { Progress } from "@/components/ui/progress";
 import { fmtPKR, type Project } from "@/lib/projects-data";
 
 export function ProjectCard({ project }: { project: Project }) {
-  const budgetPct = Math.min(100, (project.spent / project.budget) * 100);
-  const timePct = Math.min(100, (project.dayCurrent / project.dayTotal) * 100);
+  const budgetPct = project.budget > 0 ? Math.min(100, (project.spent / project.budget) * 100) : 0;
+  const timePct = project.dayTotal > 0 ? Math.min(100, (project.dayCurrent / project.dayTotal) * 100) : 0;
 
   return (
     <Link
       to="/projects/$projectId"
-      params={{ projectId: project.id }}
+      params={{ projectId: project._id || project.id }}
       className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--sre-blue)]/60 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
