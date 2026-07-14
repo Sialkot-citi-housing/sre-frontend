@@ -39,7 +39,7 @@ const phaseColors: Record<string, string> = {
 };
 
 type ActivityItem = {
-  type: "alert" | "receipt" | "labour" | "vendor" | "milestone";
+  type: "alert" | "receipt" | "vendor" | "milestone";
   message: string;
   time: string;
   timestamp: number;
@@ -48,7 +48,6 @@ type ActivityItem = {
 const activityIcon: Record<ActivityItem["type"], { icon: typeof FileText; cls: string }> = {
   alert: { icon: AlertTriangle, cls: "bg-[color:var(--sre-red)]/10 text-[color:var(--sre-red)]" },
   receipt: { icon: FileText, cls: "bg-[color:var(--sre-blue)]/10 text-[color:var(--sre-blue)]" },
-  labour: { icon: Users, cls: "bg-emerald-50 text-emerald-700" },
   vendor: { icon: Building2, cls: "bg-amber-50 text-amber-700" },
   milestone: { icon: TrendingUp, cls: "bg-secondary text-foreground" },
 };

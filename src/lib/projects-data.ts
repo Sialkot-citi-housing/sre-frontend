@@ -18,4 +18,4 @@ export type Project = {
 export const projects: Project[] = [];
 
 export const fmtPKR = (n: number) =>
-  new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(n);
+  new Intl.NumberFormat("en-PK", { maximumFractionDigits: 2 }).format(n);

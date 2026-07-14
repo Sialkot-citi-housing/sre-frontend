@@ -99,7 +99,6 @@ const MATERIAL_TABS = [
   { id: "cement", label: "Cement" },
   { id: "steel", label: "Steel (Serya)" },
   { id: "sandcrush", label: "Sand & Crush" },
-  { id: "labour", label: "Labour" },
   { id: "other", label: "Other" },
 ] as const;
 
@@ -441,7 +440,7 @@ function ProjectLedger() {
                   <DropdownMenuLabel>Download Reports</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => downloadMaterialsCSV()}>
-                    Materials &amp; Labour (CSV)
+                    Materials (CSV)
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => downloadContractorsCSV()}>
                     Contractors &amp; Payments (CSV)
@@ -615,9 +614,9 @@ function ProjectLedger() {
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
             <div>
-              <h3 className="text-base font-semibold text-foreground">Material &amp; Labour Ledger</h3>
-              <p className="text-xs text-muted-foreground">
-                Every material &amp; labour procurement — with date, vendor and quantity
+              <h3 className="text-base font-semibold text-foreground">Material Ledger</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Every material procurement — with date, vendor and quantity
               </p>
             </div>
             <AddRecordDialog
@@ -627,7 +626,7 @@ function ProjectLedger() {
                 </Button>
               }
               title="Add Procurement Entry"
-              description="Log a material or labour purchase against this project."
+              description="Log a material purchase against this project."
               submitLabel="Add Entry"
               defaults={{ date: today(), item: "", category: "cement", quantity: 0, unit: "Bags", rate: 0, vendor: "", paid: 0 }}
               fields={[

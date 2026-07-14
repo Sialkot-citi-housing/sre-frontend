@@ -294,7 +294,7 @@ function AddExpenseDialog({ projects, contractors }: { projects: any[]; contract
                   <Select value={spendType} onValueChange={(v) => setSpendType(v as "material" | "contractor")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="material">Material / Labour</SelectItem>
+                      <SelectItem value="material">Material</SelectItem>
                       <SelectItem value="contractor">Contractor Payment</SelectItem>
                     </SelectContent>
                   </Select>
