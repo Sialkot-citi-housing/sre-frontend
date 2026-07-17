@@ -246,7 +246,6 @@ function ProjectLedger() {
 
   const contractPrice = project.budget || 0;
   const customerReceived = customerPayments.reduce((s: any, p: any) => s + p.amount, 0);
-  const customerBalance = Math.max(0, contractPrice - customerReceived);
 
   const totalSpent = procurement.reduce((s: any, r: any) => s + r.quantity * r.rate, 0);
   
@@ -255,6 +254,7 @@ function ProjectLedger() {
 
   const contractorsPaid = contractors.reduce((s: any, c: any) => s + paidByContractor(c._id || c.id), 0);
   const overallProjectSpent = totalSpent + contractorsPaid;
+  const customerBalance = customerReceived - overallProjectSpent;
   const spentPercentage = customerReceived > 0 ? ((overallProjectSpent / customerReceived) * 100).toFixed(1) : 0;
   const filteredMaterial = materialTab === "all" ? procurement : procurement.filter((r: any) => r.category === materialTab);
   const filteredTotal = filteredMaterial.reduce((s: any, r: any) => s + r.quantity * r.rate, 0);
