@@ -61,4 +61,10 @@ export const api = {
   
   getOfficeExpenses: () => fetch(`${BASE_URL}/office-expenses`, { headers: getHeaders() }).then(handleResponse),
   addOfficeExpense: (data: any) => fetch(`${BASE_URL}/office-expenses`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+
+  // Invoices
+  getInvoices: () => fetch(`${BASE_URL}/invoices`, { headers: getHeaders() }).then(handleResponse),
+  createInvoice: (data: any) => fetch(`${BASE_URL}/invoices`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  updateInvoice: (id: string, data: any) => fetch(`${BASE_URL}/invoices/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse),
+  deleteInvoice: (id: string) => fetch(`${BASE_URL}/invoices/${id}`, { method: 'DELETE', headers: getHeaders() }).then(handleResponse),
 };

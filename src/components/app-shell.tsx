@@ -12,6 +12,7 @@ import {
   Search,
   Sparkles,
   Wallet,
+  Receipt,
 } from "lucide-react";
 import { projects } from "@/lib/projects-data";
 
@@ -39,6 +40,7 @@ const nav: NavItem[] = [
   { to: "/ledgers", label: "Project Ledgers", icon: FileText, matchPrefix: "/projects" },
   { to: "/office-expenses", label: "Office Expenses", icon: Wallet },
   { to: "/quotations", label: "Smart Quotations", icon: Sparkles },
+  { to: "/invoices", label: "Invoices", icon: Receipt },
 ];
 
 type SearchHit =
@@ -50,6 +52,7 @@ const PAGE_INDEX: { title: string; sub: string; to: string; keywords: string }[]
   { title: "Project Ledgers", sub: "Portfolio of active projects", to: "/ledgers", keywords: "ledgers projects portfolio plots" },
   { title: "Office Expenses", sub: "Overhead expense register", to: "/office-expenses", keywords: "office expenses overhead utilities rent fuel" },
   { title: "Smart Quotations", sub: "AI-powered estimation", to: "/quotations", keywords: "quotations quotes estimate naqsha" },
+  { title: "Invoices", sub: "Client billing & receipts", to: "/invoices", keywords: "invoices bills receipt whatsapp billing" },
 ];
 
 export function AppShell({
