@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Plus, Loader2 } from "lucide-react";
 import { InvoiceTemplate, InvoiceData, InvoiceItem } from "../invoices/invoice-template";
-import { toPng } from "html-to-image";
+import { toJpeg } from "html-to-image";
 import jsPDF from "jspdf";
 
 export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -92,8 +92,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
         try {
           if (!printRef.current) throw new Error("Template not found");
           
-          // 2. Generate PDF using html-to-image to bypass Tailwind v4 oklch issues
-          const dataUrl = await toPng(printRef.current, { pixelRatio: 2, skipFonts: true });
+          // 2. Generate PDF using toJpeg to drastically reduce file size below Cloudinary's 10MB limit
+          const dataUrl = await toJpeg(printRef.current, { pixelRatio: 2, quality: 0.95, skipFonts: true, backgroundColor: '#ffffff' });
           const pdf = new jsPDF("p", "mm", "a4");
           const pdfWidth = pdf.internal.pageSize.getWidth();
           
@@ -102,7 +102,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
           const imgProps = pdf.getImageProperties(dataUrl);
           const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
           
-          pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+          pdf.addImage(dataUrl, "JPEG", 0, 0, pdfWidth, pdfHeight);
           
           // Get Base64 Data URI
           const pdfBase64 = pdf.output("datauristring");
