@@ -34,7 +34,7 @@ function InvoicesPage() {
       alert("This invoice does not have a PDF generated yet.");
       return;
     }
-    const message = `Hello ${invoice.customerName},\n\nHere is your invoice ${invoice.invoiceNumber} for ${invoice.project?.plot || "your project"}.\n\nTotal Amount: PKR ${fmtPKR(invoice.totalAmount)}\nDue Date: ${new Date(invoice.dueDate).toLocaleDateString()}\n\nYou can view and download your official invoice here: ${invoice.pdfUrl}\n\nThank you for choosing Sialkot Real Estate!`;
+    const message = `Hello ${invoice.customerName},\n\nHere is your invoice ${invoice.invoiceNumber} for ${invoice.project?.plot || "your project"}.\n\nTotal Amount: PKR ${fmtPKR(invoice.totalAmount)}\nDue Date: ${new Date(invoice.dueDate).toLocaleDateString()}\n\nPlease find the PDF document attached.\n\nThank you for choosing Sialkot Real Estate!`;
     const encoded = encodeURIComponent(message);
     let phone = invoice.customerPhone.replace(/\D/g, "");
     if (!phone.startsWith("92") && phone.startsWith("0")) {
@@ -43,8 +43,21 @@ function InvoicesPage() {
     window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank");
   };
 
-  const printInvoice = (url: string) => {
-    window.open(url, "_blank");
+  const downloadInvoice = async (url: string, invoiceNumber: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `Invoice_${invoiceNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      window.open(url, "_blank");
+    }
   };
 
   if (invLoad) {
@@ -116,8 +129,8 @@ function InvoicesPage() {
                           <Button
                             variant="outline"
                             size="icon"
-                            title="Print / View PDF"
-                            onClick={() => printInvoice(inv.pdfUrl)}
+                            title="Download PDF"
+                            onClick={() => downloadInvoice(inv.pdfUrl, inv.invoiceNumber)}
                             className="h-8 w-8 text-muted-foreground hover:text-foreground"
                           >
                             <Printer className="h-4 w-4" />

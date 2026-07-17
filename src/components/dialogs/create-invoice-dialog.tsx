@@ -61,28 +61,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
     setItems(newItems);
   };
 
-  const uploadToCloudinary = async (pdfBlob: Blob): Promise<string> => {
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-    
-    if (!cloudName || !uploadPreset) {
-      console.warn("Cloudinary environment variables missing. Skipping upload.");
-      return "";
-    }
 
-    const formData = new FormData();
-    formData.append("file", pdfBlob, "invoice.pdf");
-    formData.append("upload_preset", uploadPreset);
-
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) throw new Error("Failed to upload to Cloudinary");
-    const data = await res.json();
-    return data.secure_url;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,17 +100,11 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
           const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
           pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
           
-          const pdfBlob = pdf.output("blob");
+          // Get Base64 Data URI
+          const pdfBase64 = pdf.output("datauristring");
 
-          // 3. Upload to Cloudinary
-          const pdfUrl = await uploadToCloudinary(pdfBlob);
-
-          // 4. Update Invoice with URL
-          if (pdfUrl) {
-            await api.updateInvoice(createdInvoice._id, { pdfUrl });
-          } else {
-            alert("Invoice created successfully, but PDF was not uploaded because Cloudinary is not configured. Please add VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET to Vercel.");
-          }
+          // 3. Send Base64 to backend to upload securely
+          await api.updateInvoice(createdInvoice._id, { pdfBase64 });
 
           queryClient.invalidateQueries({ queryKey: ["invoices"] });
           setLoading(false);
@@ -144,7 +117,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
           setGeneratedInvoiceNo("");
         } catch (err) {
           console.error("PDF/Upload Error:", err);
-          alert("Invoice was created, but PDF generation failed.");
+          alert("Invoice was created, but PDF upload failed.");
           setLoading(false);
           onOpenChange(false);
         }
