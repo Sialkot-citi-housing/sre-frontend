@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { Loader2, Plus, FileText, Send, Trash2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CreateInvoiceDialog } from "@/components/dialogs/create-invoice-dialog";
 import { fmtPKR } from "@/lib/projects-data";
 
@@ -43,22 +44,7 @@ function InvoicesPage() {
     window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank");
   };
 
-  const downloadInvoice = async (url: string, invoiceNumber: string) => {
-    try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = `Invoice_${invoiceNumber}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (e) {
-      window.open(url, "_blank");
-    }
-  };
+  // Native anchor tags are used in the JSX below to handle View and Download without JS fetch/window.open.
 
   if (invLoad) {
     return (
@@ -124,41 +110,42 @@ function InvoicesPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {inv.pdfUrl && (
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            title="Download PDF"
-                            onClick={() => downloadInvoice(inv.pdfUrl, inv.invoiceNumber)}
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          >
-                            <Printer className="h-4 w-4" />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                           </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          title="Share on WhatsApp"
-                          onClick={() => shareOnWhatsApp(inv)}
-                          className="h-8 w-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Delete Invoice"
-                          onClick={() => {
-                            if (confirm("Are you sure you want to delete this invoice?")) {
-                              deleteMutation.mutate(inv._id);
-                            }
-                          }}
-                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          {inv.pdfUrl && (
+                            <>
+                              <DropdownMenuItem asChild>
+                                <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" className="cursor-pointer w-full flex items-center">
+                                  <FileText className="mr-2 h-4 w-4" /> View
+                                </a>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <a href={inv.pdfUrl.replace('/upload/', '/upload/fl_attachment/')} download={`Invoice_${inv.invoiceNumber}.pdf`} className="cursor-pointer w-full flex items-center">
+                                  <Printer className="mr-2 h-4 w-4" /> Download
+                                </a>
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          <DropdownMenuItem onClick={() => shareOnWhatsApp(inv)} className="cursor-pointer text-emerald-600 focus:text-emerald-700">
+                            <Send className="mr-2 h-4 w-4" /> Share
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              if (confirm("Are you sure you want to delete this invoice?")) {
+                                deleteMutation.mutate(inv._id);
+                              }
+                            }} 
+                            className="cursor-pointer text-red-600 focus:text-red-700"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))
