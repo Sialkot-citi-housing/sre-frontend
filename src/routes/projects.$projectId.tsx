@@ -574,7 +574,7 @@ function ProjectLedger() {
               </TableHeader>
               <TableBody>
                 {customerPayments.map((p) => (
-                  <TableRow key={p.id} className="border-border transition-colors hover:bg-accent/40">
+                  <TableRow key={p._id || p.id} className="border-border transition-colors hover:bg-accent/40">
                     <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{p.date}</TableCell>
                     <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(p.amount)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{p.method}</TableCell>
@@ -587,10 +587,10 @@ function ProjectLedger() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-[160px]">
-                          <DropdownMenuItem onClick={() => setEditCustomerPaymentId(p.id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
+                          <DropdownMenuItem onClick={() => setEditCustomerPaymentId(p._id || p.id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
                             <Pencil className="mr-2 h-4 w-4" /> Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteCustomerPayment(p.id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
+                          <DropdownMenuItem onClick={() => handleDeleteCustomerPayment(p._id || p.id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
