@@ -17,8 +17,17 @@ const getHeaders = () => {
 
 const handleResponse = async (res: Response) => {
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || 'API request failed');
+    let errorMsg = 'API request failed';
+    try {
+      const error = await res.json();
+      errorMsg = error.message || errorMsg;
+    } catch (e) {
+      // If response is not JSON (e.g. 500 HTML page)
+      const text = await res.text().catch(() => "");
+      console.error("API Error Response Text:", text);
+      errorMsg = text ? `Server Error: ${text.substring(0, 100)}...` : errorMsg;
+    }
+    throw new Error(errorMsg);
   }
   return res.json();
 };
