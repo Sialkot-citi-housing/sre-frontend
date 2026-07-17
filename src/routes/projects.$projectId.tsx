@@ -249,6 +249,13 @@ function ProjectLedger() {
   const customerBalance = Math.max(0, contractPrice - customerReceived);
 
   const totalSpent = procurement.reduce((s: any, r: any) => s + r.quantity * r.rate, 0);
+  
+  const paidByContractor = (id: string) =>
+    contractorPayments.filter((p: any) => (p.contractorId || p.contractor) === id).reduce((s: any, p: any) => s + p.amount, 0);
+
+  const contractorsPaid = contractors.reduce((s: any, c: any) => s + paidByContractor(c._id || c.id), 0);
+  const overallProjectSpent = totalSpent + contractorsPaid;
+  const spentPercentage = customerReceived > 0 ? ((overallProjectSpent / customerReceived) * 100).toFixed(1) : 0;
   const filteredMaterial = materialTab === "all" ? procurement : procurement.filter((r: any) => r.category === materialTab);
   const filteredTotal = filteredMaterial.reduce((s: any, r: any) => s + r.quantity * r.rate, 0);
   const qtyByItem = filteredMaterial.reduce<Record<string, { qty: number; unit: string }>>((acc: any, r: any) => {
@@ -258,12 +265,8 @@ function ProjectLedger() {
     return acc;
   }, {});
 
-  const paidByContractor = (id: string) =>
-    contractorPayments.filter((p: any) => (p.contractorId || p.contractor) === id).reduce((s: any, p: any) => s + p.amount, 0);
-
   const contractorsInTab = contractors.filter((c: any) => c.role === contractorTab);
   const contractorsTotal = contractors.reduce((s: any, c: any) => s + c.agreedAmount, 0);
-  const contractorsPaid = contractors.reduce((s: any, c: any) => s + paidByContractor(c._id || c.id), 0);
 
   const materialPaidTotal = procurement.reduce((s: any, r: any) => s + (r.paid || 0), 0);
   const filteredPaid = filteredMaterial.reduce((s: any, r: any) => s + (r.paid || 0), 0);
@@ -556,10 +559,10 @@ function ProjectLedger() {
             />
           </div>
           <div className="grid grid-cols-2 gap-4 border-b border-border bg-secondary/30 px-6 py-4 md:grid-cols-4">
-            <StatTile icon={<Layers className="h-4 w-4" />} label="Contract price" value={`PKR ${fmtPKR(contractPrice)}`} />
-            <StatTile icon={<ArrowUpRight className="h-4 w-4" />} label="Received to date" value={`PKR ${fmtPKR(customerReceived)}`} />
-            <StatTile icon={<Wallet className="h-4 w-4" />} label="Balance due" value={`PKR ${fmtPKR(customerBalance)}`} />
-            <StatTile icon={<CheckCircle2 className="h-4 w-4" />} label="% Received" value={`${contractPrice > 0 ? ((customerReceived / contractPrice) * 100).toFixed(1) : 0}%`} />
+            <StatTile icon={<ArrowUpRight className="h-4 w-4" />} label="Received to Date" value={`PKR ${fmtPKR(customerReceived)}`} />
+            <StatTile icon={<Wallet className="h-4 w-4" />} label="Total spent to Date" value={`PKR ${fmtPKR(overallProjectSpent)}`} />
+            <StatTile icon={<Layers className="h-4 w-4" />} label="Balance due" value={`PKR ${fmtPKR(customerBalance)}`} />
+            <StatTile icon={<CheckCircle2 className="h-4 w-4" />} label="Spent %" value={`${spentPercentage}%`} />
           </div>
           <div className="overflow-x-auto">
             <Table>
