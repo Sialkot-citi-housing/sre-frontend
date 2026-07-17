@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Plus, Loader2 } from "lucide-react";
 import { InvoiceTemplate, InvoiceData, InvoiceItem } from "../invoices/invoice-template";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 
 export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -92,13 +92,17 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
         try {
           if (!printRef.current) throw new Error("Template not found");
           
-          // 2. Generate PDF
-          const canvas = await html2canvas(printRef.current, { scale: 2 });
-          const imgData = canvas.toDataURL("image/png");
+          // 2. Generate PDF using html-to-image to bypass Tailwind v4 oklch issues
+          const dataUrl = await toPng(printRef.current, { pixelRatio: 2, skipFonts: true });
           const pdf = new jsPDF("p", "mm", "a4");
           const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-          pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+          
+          // Image original dimensions for a4 aspect ratio 
+          // (assuming the ref matches the A4 ratio set by 210mm x 297mm)
+          const imgProps = pdf.getImageProperties(dataUrl);
+          const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+          
+          pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
           
           // Get Base64 Data URI
           const pdfBase64 = pdf.output("datauristring");
