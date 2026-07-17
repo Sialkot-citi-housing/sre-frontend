@@ -19,11 +19,17 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
   const [projectId, setProjectId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [contractNo, setContractNo] = useState("");
+  const [projectManager, setProjectManager] = useState("");
+  const [discount, setDiscount] = useState<number>(0);
+  const [taxRate, setTaxRate] = useState<number>(18);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
   
   const [items, setItems] = useState<InvoiceItem[]>([
-    { description: "", quantity: 1, rate: 0, amount: 0 }
+    { description: "", unit: "Lump Sum", quantity: 1, rate: 0, amount: 0 }
   ]);
   
   const [generatedInvoiceNo, setGeneratedInvoiceNo] = useState<string>("");
@@ -48,7 +54,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
 
   const handleAddItem = () => {
-    setItems([...items, { description: "", quantity: 1, rate: 0, amount: 0 }]);
+    setItems([...items, { description: "", unit: "Lump Sum", quantity: 1, rate: 0, amount: 0 }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -79,8 +85,15 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
         dueDate,
         customerName,
         customerPhone,
+        customerEmail,
+        customerAddress,
+        contractNo,
+        projectManager,
         project: projectId,
         items,
+        totalAmount: totalAmount - discount + (totalAmount - discount) * (taxRate / 100),
+        discount,
+        taxRate,
         status: "Unpaid"
       };
       
@@ -116,8 +129,14 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
           // Reset form
           setCustomerName("");
           setCustomerPhone("");
+          setCustomerEmail("");
+          setCustomerAddress("");
+          setContractNo("");
+          setProjectManager("");
+          setDiscount(0);
+          setTaxRate(18);
           setProjectId("");
-          setItems([{ description: "", quantity: 1, rate: 0, amount: 0 }]);
+          setItems([{ description: "", unit: "Lump Sum", quantity: 1, rate: 0, amount: 0 }]);
           setGeneratedInvoiceNo("");
         } catch (err) {
           console.error("PDF/Upload Error:", err);
@@ -140,9 +159,17 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
     dueDate,
     customerName,
     customerPhone,
-    projectInfo: selectedProject?.plot,
+    customerEmail,
+    customerAddress,
+    projectInfo: selectedProject?.plot || "Modern Villa Construction",
+    projectLocation: "Citi Housing, Sialkot",
+    plotNo: selectedProject?.plot || "102, Block DD",
+    contractNo: contractNo || "SRE-CON-2025-015",
+    projectManager: projectManager || "Engr. Usman Ali",
     items,
-    totalAmount
+    discount,
+    taxRate,
+    totalAmount: totalAmount - discount + (totalAmount - discount) * (taxRate / 100)
   };
 
   return (
@@ -164,6 +191,14 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
                 <Label>WhatsApp Number</Label>
                 <Input required value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="03001234567" />
               </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} placeholder="john@example.com" />
+              </div>
+              <div className="space-y-2">
+                <Label>Address</Label>
+                <Input value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="House No. 45, Street No. 12..." />
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
@@ -177,6 +212,14 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Contract No.</Label>
+                <Input value={contractNo} onChange={e => setContractNo(e.target.value)} placeholder="SRE-CON-..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Project Manager</Label>
+                <Input value={projectManager} onChange={e => setProjectManager(e.target.value)} placeholder="Engr. Usman Ali" />
               </div>
               <div className="space-y-2">
                 <Label>Invoice Date</Label>
@@ -202,10 +245,21 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
                     <div className="flex-1 space-y-1">
                       <Input placeholder="Description (e.g. Grey Structure Payment)" value={item.description} onChange={e => updateItem(i, "description", e.target.value)} required />
                     </div>
+                    <div className="w-28 space-y-1">
+                      <Select value={item.unit} onValueChange={(val) => updateItem(i, "unit", val)}>
+                        <SelectTrigger><SelectValue placeholder="Unit" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Lump Sum">Lump Sum</SelectItem>
+                          <SelectItem value="Per Sq. Ft.">Per Sq. Ft.</SelectItem>
+                          <SelectItem value="Per Cft.">Per Cft.</SelectItem>
+                          <SelectItem value="Per Kg">Per Kg</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="w-24 space-y-1">
                       <Input type="number" min={1} placeholder="Qty" value={item.quantity} onChange={e => updateItem(i, "quantity", Number(e.target.value))} required />
                     </div>
-                    <div className="w-32 space-y-1">
+                    <div className="w-28 space-y-1">
                       <Input type="number" placeholder="Rate" value={item.rate} onChange={e => updateItem(i, "rate", Number(e.target.value))} required />
                     </div>
                     <div className="w-32 text-right font-medium text-sm">
@@ -217,8 +271,21 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
                   </div>
                 ))}
               </div>
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                <div className="space-y-2 col-start-2">
+                  <Label>Discount (PKR)</Label>
+                  <Input type="number" min={0} value={discount} onChange={e => setDiscount(Number(e.target.value))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tax Rate (%)</Label>
+                  <Input type="number" min={0} value={taxRate} onChange={e => setTaxRate(Number(e.target.value))} />
+                </div>
+              </div>
               <div className="text-right font-semibold text-lg pt-2">
-                Total: PKR {totalAmount.toLocaleString()}
+                Subtotal: PKR {totalAmount.toLocaleString()} <br/>
+                <span className="text-xl font-bold text-[color:var(--sre-blue)]">
+                  Total: PKR {(totalAmount - discount + (totalAmount - discount) * (taxRate / 100)).toLocaleString()}
+                </span>
               </div>
             </div>
 
