@@ -258,7 +258,7 @@ function ProjectLedger() {
   const contractorsPaid = contractors.reduce((s: any, c: any) => s + paidByContractor(c._id || c.id), 0);
   const contractorsTotal = contractors.reduce((s: any, c: any) => s + c.agreedAmount, 0);
 
-  const overallProjectSpent = totalSpent + contractorsTotal;
+  const overallProjectSpent = materialPaidTotal + contractorsPaid;
   const customerBalance = customerReceived - overallProjectSpent;
   const spentPercentage = customerReceived > 0 ? ((overallProjectSpent / customerReceived) * 100).toFixed(1) : 0;
   const filteredMaterial = materialTab === "all" ? procurement : procurement.filter((r: any) => r.category === materialTab);
@@ -808,6 +808,9 @@ function ProjectLedger() {
               <span className="ml-3 font-normal text-muted-foreground">
                 (Paid <span className="font-semibold text-emerald-700">PKR {fmtPKR(materialTab === "all" ? materialPaidTotal + contractorsPaid : filteredPaid)}</span>)
               </span>
+              <span className="ml-3 font-normal text-muted-foreground">
+                | <span className="font-semibold text-rose-600">Balance: PKR {fmtPKR(materialTab === "all" ? (totalSpent + contractorsTotal) - (materialPaidTotal + contractorsPaid) : filteredTotal - filteredPaid)}</span>
+              </span>
             </span>
           </div>
         </div>
@@ -1020,9 +1023,12 @@ function ProjectLedger() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/40 px-6 py-3 text-sm">
             <span className="text-muted-foreground">{contractors.length} contractors total</span>
             <span className="font-semibold text-foreground">
-              Paid PKR {fmtPKR(contractorsPaid)} / {fmtPKR(contractorsTotal)}
-              <span className="ml-2 font-normal text-muted-foreground">
-                (Balance PKR {fmtPKR(contractorsTotal - contractorsPaid)})
+              Total PKR {fmtPKR(contractorsTotal)}
+              <span className="ml-3 font-normal text-muted-foreground">
+                (Paid <span className="font-semibold text-emerald-700">PKR {fmtPKR(contractorsPaid)}</span>)
+              </span>
+              <span className="ml-3 font-normal text-muted-foreground">
+                | <span className="font-semibold text-rose-600">Balance: PKR {fmtPKR(contractorsTotal - contractorsPaid)}</span>
               </span>
             </span>
           </div>
