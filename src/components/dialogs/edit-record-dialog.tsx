@@ -39,7 +39,7 @@ export function EditRecordDialog({
   onOpenChange: (v: boolean) => void;
   title: string;
   description?: string;
-  fields: EditField[];
+  fields: EditField[] | ((draft: EditValues) => EditField[]);
   values: EditValues | null;
   onSave: (next: EditValues) => void;
 }) {
@@ -68,7 +68,7 @@ export function EditRecordDialog({
             onOpenChange(false);
           }}
         >
-          {fields.map((f) => {
+          {(typeof fields === "function" ? fields(draft) : fields).map((f) => {
             const val = draft[f.key] ?? "";
             const spanFull =
               f.type === "textarea" ? "sm:col-span-2" : "sm:col-span-1";

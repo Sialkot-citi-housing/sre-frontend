@@ -33,7 +33,7 @@ export function AddRecordDialog({
   trigger: ReactNode;
   title: string;
   description?: string;
-  fields: EditField[];
+  fields: EditField[] | ((draft: EditValues) => EditField[]);
   defaults: EditValues;
   submitLabel?: string;
   onSubmit: (values: EditValues) => void;
@@ -66,7 +66,7 @@ export function AddRecordDialog({
             setOpen(false);
           }}
         >
-          {fields.map((f) => {
+          {(typeof fields === "function" ? fields(draft) : fields).map((f) => {
             const val = draft[f.key] ?? "";
             const spanFull =
               f.type === "textarea" ? "sm:col-span-2" : "sm:col-span-1";

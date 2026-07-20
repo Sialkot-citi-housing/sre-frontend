@@ -248,7 +248,9 @@ function ProjectLedger() {
   const contractPrice = project.budget || 0;
   const customerReceived = customerPayments.reduce((s: any, p: any) => s + p.amount, 0);
 
-  const totalSpent = procurement.reduce((s: any, r: any) => s + r.quantity * r.rate, 0);
+  const getProcurementTotal = (r: any) => r.category === 'other' && (!r.quantity || r.quantity === 0) && (!r.rate || r.rate === 0) ? r.paid : r.quantity * r.rate;
+
+  const totalSpent = procurement.reduce((s: any, r: any) => s + getProcurementTotal(r), 0);
   
   const paidByContractor = (id: string) =>
     contractorPayments.filter((p: any) => (p.contractorId || p.contractor) === id).reduce((s: any, p: any) => s + p.amount, 0);
@@ -260,7 +262,7 @@ function ProjectLedger() {
   const customerBalance = customerReceived - overallProjectSpent;
   const spentPercentage = customerReceived > 0 ? ((overallProjectSpent / customerReceived) * 100).toFixed(1) : 0;
   const filteredMaterial = materialTab === "all" ? procurement : procurement.filter((r: any) => r.category === materialTab);
-  const filteredTotal = filteredMaterial.reduce((s: any, r: any) => s + r.quantity * r.rate, 0);
+  const filteredTotal = filteredMaterial.reduce((s: any, r: any) => s + getProcurementTotal(r), 0);
   const qtyByItem = filteredMaterial.reduce<Record<string, { qty: number; unit: string }>>((acc: any, r: any) => {
     const key = `${r.category} (${r.unit})`;
     acc[key] = acc[key] ?? { qty: 0, unit: r.unit };
@@ -634,19 +636,32 @@ function ProjectLedger() {
               description="Log a material purchase against this project."
               submitLabel="Add Entry"
               defaults={{ date: today(), item: "", category: "cement", quantity: 0, unit: "Bags", rate: 0, vendor: "", paid: 0 }}
-              fields={[
+              fields={(draft) => [
                 { key: "date", label: "Date", type: "date", required: true },
                 { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true },
                 { key: "item", label: "Item", type: "text", required: true, placeholder: "e.g. Lucky Cement (OPC)" },
                 { key: "vendor", label: "Vendor / Supplier", type: "text", required: true, placeholder: "e.g. Bilal Traders" },
-                { key: "quantity", label: "Quantity", type: "number", required: true },
-                { key: "unit", label: "Unit", type: "text", required: true, placeholder: "Bags / Pcs / Tons / Trolly / Days" },
-                { key: "rate", label: "Rate per Unit (PKR)", type: "number", required: true },
-                { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
+                ...(draft.category === 'other' ? [] : [
+                  { key: "quantity", label: "Quantity", type: "number", required: true },
+                  { key: "unit", label: "Unit", type: "text", required: true, placeholder: "Bags / Pcs / Tons / Trolly / Days" },
+                  { key: "rate", label: "Rate per Unit (PKR)", type: "number", required: true }
+                ] as const),
+                { key: "paid", label: draft.category === 'other' ? "Total Amount Paid (PKR)" : "Paid to Vendor (PKR)", type: "number", required: true },
               ]}
-              onSubmit={(v) =>
-                api.addProcurement({ project: project._id, date: String(v.date), item: String(v.item), category: v.category, quantity: Number(v.quantity) || 0, unit: String(v.unit), rate: Number(v.rate) || 0, vendor: String(v.vendor), paid: Number(v.paid) || 0 }).then(() => { queryClient.invalidateQueries({ queryKey: ["procurements"] }); toast.success("Procurement added"); }).catch(e => toast.error(e.message))
-              }
+              onSubmit={(v) => {
+                const isOther = v.category === 'other';
+                api.addProcurement({ 
+                  project: project._id, 
+                  date: String(v.date), 
+                  item: String(v.item), 
+                  category: v.category as any, 
+                  quantity: isOther ? 0 : (Number(v.quantity) || 0), 
+                  unit: isOther ? "Lump Sum" : String(v.unit), 
+                  rate: isOther ? 0 : (Number(v.rate) || 0), 
+                  vendor: String(v.vendor), 
+                  paid: Number(v.paid) || 0 
+                }).then(() => { queryClient.invalidateQueries({ queryKey: ["procurements"] }); toast.success("Procurement added"); }).catch(e => toast.error(e.message))
+              }}
             />
           </div>
           <div className="border-b border-border px-6 py-3">
@@ -690,9 +705,9 @@ function ProjectLedger() {
                       <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(row.quantity)}</TableCell>
                       <TableCell className="text-muted-foreground">{row.unit}</TableCell>
                       <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(row.rate)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(row.quantity * row.rate)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(getProcurementTotal(row))}</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(row.paid)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, row.quantity * row.rate - row.paid))}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, getProcurementTotal(row) - row.paid))}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1019,24 +1034,43 @@ function ProjectLedger() {
         open={editProcurementId !== null}
         onOpenChange={(v) => !v && setEditProcurementId(null)}
         title="Edit Procurement Entry"
-        fields={[
+        fields={(draft) => [
           { key: "date", label: "Date", type: "date", required: true },
           { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true },
           { key: "item", label: "Item", type: "text", required: true },
           { key: "vendor", label: "Vendor", type: "text", required: true },
-          { key: "quantity", label: "Quantity", type: "number", required: true },
-          { key: "unit", label: "Unit", type: "text", required: true },
-          { key: "rate", label: "Rate (PKR)", type: "number", required: true },
-          { key: "paid", label: "Paid to Vendor (PKR)", type: "number", required: true },
+          ...(draft.category === 'other' ? [] : [
+            { key: "quantity", label: "Quantity", type: "number", required: true },
+            { key: "unit", label: "Unit", type: "text", required: true },
+            { key: "rate", label: "Rate", type: "number", required: true }
+          ] as const),
+          { key: "paid", label: draft.category === 'other' ? "Total Amount Paid (PKR)" : "Paid", type: "number", required: true },
         ]}
         values={
           editProcurementId
-            ? (procurement.find((r) => r.id === editProcurementId || r._id === editProcurementId) as unknown as EditValues) ?? null
+            ? (() => {
+                const record = procurement.find((r: any) => (r.id || r._id) === editProcurementId);
+                if (!record) return null;
+                return { ...record };
+              })()
             : null
         }
-        onSave={(next) => {
-          if (!editProcurementId) return;
-          api.updateProcurement(editProcurementId, next).then(() => { queryClient.invalidateQueries({ queryKey: ["procurements"] }); setEditProcurementId(null); toast.success("Updated"); }).catch(e => toast.error(e.message));
+        onSave={(v) => {
+          const isOther = v.category === 'other';
+          api.updateProcurement(editProcurementId!, { 
+            date: String(v.date), 
+            item: String(v.item), 
+            category: v.category as any, 
+            quantity: isOther ? 0 : Number(v.quantity), 
+            unit: isOther ? "Lump Sum" : String(v.unit), 
+            rate: isOther ? 0 : Number(v.rate), 
+            vendor: String(v.vendor), 
+            paid: Number(v.paid) 
+          }).then(() => {
+            queryClient.invalidateQueries({ queryKey: ["procurements"] });
+            toast.success("Procurement updated");
+            setEditProcurementId(null);
+          }).catch(e => toast.error(e.message));
         }}
       />
 
