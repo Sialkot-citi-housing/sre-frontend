@@ -85,7 +85,10 @@ export function AddRecordDialog({
                 ) : f.type === "select" ? (
                   <Select
                     value={String(val)}
-                    onValueChange={(v) => setField(f.key, v)}
+                    onValueChange={(v) => {
+                      setField(f.key, v);
+                      f.onChange?.(v, setField);
+                    }}
                   >
                     <SelectTrigger id={`add-${f.key}`}>
                       <SelectValue placeholder="Select" />

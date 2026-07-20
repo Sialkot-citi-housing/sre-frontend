@@ -22,7 +22,7 @@ import {
 export type EditField =
   | { key: string; label: string; type: "text" | "number" | "tel" | "date"; placeholder?: string; required?: boolean }
   | { key: string; label: string; type: "textarea"; placeholder?: string; rows?: number; required?: boolean }
-  | { key: string; label: string; type: "select"; options: readonly string[]; required?: boolean };
+  | { key: string; label: string; type: "select"; options: readonly string[]; required?: boolean; onChange?: (val: string, setField: (k: string, v: string | number) => void) => void };
 
 export type EditValues = Record<string, string | number>;
 
@@ -87,7 +87,10 @@ export function EditRecordDialog({
                 ) : f.type === "select" ? (
                   <Select
                     value={String(val)}
-                    onValueChange={(v) => setField(f.key, v)}
+                    onValueChange={(v) => {
+                      setField(f.key, v);
+                      f.onChange?.(v, setField);
+                    }}
                   >
                     <SelectTrigger id={`edit-${f.key}`}>
                       <SelectValue placeholder="Select" />

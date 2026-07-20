@@ -638,7 +638,10 @@ function ProjectLedger() {
               defaults={{ date: today(), item: "", category: "cement", quantity: 0, unit: "Bags", rate: 0, vendor: "", paid: 0 }}
               fields={(draft) => [
                 { key: "date", label: "Date", type: "date", required: true },
-                { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true },
+                { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true, onChange: (val, setField) => {
+                  const unitMap: Record<string, string> = { bricks: "Pcs", cement: "Bags", steel: "Kg", sand: "Trolly", crush: "ft" };
+                  if (unitMap[val]) setField("unit", unitMap[val]);
+                } },
                 { key: "item", label: "Item", type: "text", required: true, placeholder: "e.g. Lucky Cement (OPC)" },
                 { key: "vendor", label: "Vendor / Supplier", type: "text", required: true, placeholder: "e.g. Bilal Traders" },
                 ...(draft.category === 'other' ? [] : [
@@ -1042,7 +1045,10 @@ function ProjectLedger() {
         title="Edit Procurement Entry"
         fields={(draft) => [
           { key: "date", label: "Date", type: "date", required: true },
-          { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true },
+          { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true, onChange: (val, setField) => {
+            const unitMap: Record<string, string> = { bricks: "Pcs", cement: "Bags", steel: "Kg", sand: "Trolly", crush: "ft" };
+            if (unitMap[val]) setField("unit", unitMap[val]);
+          } },
           { key: "item", label: "Item", type: "text", required: true },
           { key: "vendor", label: "Vendor", type: "text", required: true },
           ...(draft.category === 'other' ? [] : [
