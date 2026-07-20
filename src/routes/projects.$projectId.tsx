@@ -98,7 +98,8 @@ const MATERIAL_TABS = [
   { id: "bricks", label: "Bricks" },
   { id: "cement", label: "Cement" },
   { id: "steel", label: "Steel (Serya)" },
-  { id: "sandcrush", label: "Sand & Crush" },
+  { id: "sand", label: "Sand" },
+  { id: "crush", label: "Crush" },
   { id: "other", label: "Other" },
 ] as const;
 
@@ -253,7 +254,9 @@ function ProjectLedger() {
     contractorPayments.filter((p: any) => (p.contractorId || p.contractor) === id).reduce((s: any, p: any) => s + p.amount, 0);
 
   const contractorsPaid = contractors.reduce((s: any, c: any) => s + paidByContractor(c._id || c.id), 0);
-  const overallProjectSpent = totalSpent + contractorsPaid;
+  const contractorsTotal = contractors.reduce((s: any, c: any) => s + c.agreedAmount, 0);
+
+  const overallProjectSpent = totalSpent + contractorsTotal;
   const customerBalance = customerReceived - overallProjectSpent;
   const spentPercentage = customerReceived > 0 ? ((overallProjectSpent / customerReceived) * 100).toFixed(1) : 0;
   const filteredMaterial = materialTab === "all" ? procurement : procurement.filter((r: any) => r.category === materialTab);
@@ -266,7 +269,6 @@ function ProjectLedger() {
   }, {});
 
   const contractorsInTab = contractors.filter((c: any) => c.role === contractorTab);
-  const contractorsTotal = contractors.reduce((s: any, c: any) => s + c.agreedAmount, 0);
 
   const materialPaidTotal = procurement.reduce((s: any, r: any) => s + (r.paid || 0), 0);
   const filteredPaid = filteredMaterial.reduce((s: any, r: any) => s + (r.paid || 0), 0);

@@ -1,12 +1,13 @@
 import { useSyncExternalStore } from "react";
 import { projects } from "./projects-data";
 
-export type MaterialCategory = "bricks" | "cement" | "steel" | "sandcrush" | "other";
+export type MaterialCategory = "bricks" | "cement" | "steel" | "sand" | "crush" | "other";
 export const MATERIAL_CATEGORY_OPTIONS: MaterialCategory[] = [
   "bricks",
   "cement",
   "steel",
-  "sandcrush",
+  "sand",
+  "crush",
   "other",
 ];
 
