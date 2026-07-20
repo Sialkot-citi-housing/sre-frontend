@@ -9,6 +9,9 @@ import {
   Building2,
   Landmark,
   Loader2,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -43,6 +46,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fmtPKR } from "@/lib/projects-data";
 import {
@@ -55,6 +64,7 @@ import {
   type PaymentMethod,
 } from "@/lib/finance-store";
 import { AddRecordDialog } from "@/components/dialogs/add-record-dialog";
+import { EditRecordDialog } from "@/components/dialogs/edit-record-dialog";
 
 export const Route = createFileRoute("/office-expenses")({
   head: () => ({
@@ -422,6 +432,27 @@ function OfficeExpenses() {
     document.title = "Office Expenses | Sialkot Real Estate";
   }, []);
   const [tab, setTab] = useState<"all" | "project" | "office">("all");
+  const queryClient = useQueryClient();
+  const [editOfficeExpenseId, setEditOfficeExpenseId] = useState<string | null>(null);
+  const [editProcurementId, setEditProcurementId] = useState<string | null>(null);
+  const [editPaymentId, setEditPaymentId] = useState<string | null>(null);
+
+  const handleEdit = (id: string) => {
+    if (id.startsWith('off-')) setEditOfficeExpenseId(id.slice(4));
+    else if (id.startsWith('mat-')) setEditProcurementId(id.slice(4));
+    else if (id.startsWith('con-')) setEditPaymentId(id.slice(4));
+  };
+
+  const handleDelete = (id: string) => {
+    if (!confirm("Are you sure you want to delete this record?")) return;
+    if (id.startsWith('off-')) {
+      api.deleteOfficeExpense(id.slice(4)).then(() => { toast.success("Deleted"); queryClient.invalidateQueries({ queryKey: ["officeExpenses"] }); }).catch(e => toast.error(e.message));
+    } else if (id.startsWith('mat-')) {
+      api.deleteProcurement(id.slice(4)).then(() => { toast.success("Deleted"); queryClient.invalidateQueries({ queryKey: ["procurements"] }); }).catch(e => toast.error(e.message));
+    } else if (id.startsWith('con-')) {
+      api.deleteContractorPayment(id.slice(4)).then(() => { toast.success("Deleted"); queryClient.invalidateQueries({ queryKey: ["contractorPayments"] }); }).catch(e => toast.error(e.message));
+    }
+  };
 
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery({ queryKey: ["projects"], queryFn: api.getProjects });
   const { data: contractors = [], isLoading: isLoadingContractors } = useQuery({ queryKey: ["contractors"], queryFn: api.getAllContractors });
@@ -631,6 +662,7 @@ function OfficeExpenses() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Description</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Detail</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Amount (PKR)</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -646,6 +678,25 @@ function OfficeExpenses() {
                     <TableCell className="text-sm text-foreground">{r.description}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.detail}</TableCell>
                     <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(r.amount)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-secondary/80">
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40 bg-card">
+                          <DropdownMenuItem onClick={() => handleEdit(r.id)} className="cursor-pointer text-sm font-medium">
+                            <Pencil className="mr-2 h-4 w-4 text-muted-foreground" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDelete(r.id)} className="cursor-pointer text-sm font-medium text-[color:var(--sre-red)] focus:bg-[color:var(--sre-red)]/10 focus:text-[color:var(--sre-red)]">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (
@@ -666,6 +717,118 @@ function OfficeExpenses() {
           </div>
         </div>
       </div>
+      
+      {/* EDIT DIALOGS */}
+      <EditRecordDialog
+        open={editOfficeExpenseId !== null}
+        onOpenChange={(v) => !v && setEditOfficeExpenseId(null)}
+        title="Edit Office Expense"
+        fields={[
+          { key: "date", label: "Date", type: "date", required: true },
+          { key: "category", label: "Category", type: "select", options: OFFICE_EXPENSE_CATEGORIES, required: true },
+          { key: "description", label: "Description", type: "text", required: true },
+          { key: "paidTo", label: "Paid To", type: "text", required: true },
+          { key: "method", label: "Method", type: "select", options: PAYMENT_METHODS, required: true },
+          { key: "amount", label: "Amount (PKR)", type: "number", required: true },
+        ]}
+        values={
+          editOfficeExpenseId
+            ? (() => {
+                const record = officeExpenses.find((r: any) => (r.id || r._id) === editOfficeExpenseId);
+                if (!record) return null;
+                return { ...record };
+              })()
+            : null
+        }
+        onSave={(v) => {
+          api.updateOfficeExpense(editOfficeExpenseId!, { 
+            date: String(v.date), 
+            category: v.category as any, 
+            description: String(v.description), 
+            paidTo: String(v.paidTo), 
+            method: v.method as any, 
+            amount: Number(v.amount) 
+          }).then(() => {
+            queryClient.invalidateQueries({ queryKey: ["officeExpenses"] });
+            toast.success("Expense updated");
+            setEditOfficeExpenseId(null);
+          }).catch(e => toast.error(e.message));
+        }}
+      />
+
+      <EditRecordDialog
+        open={editProcurementId !== null}
+        onOpenChange={(v) => !v && setEditProcurementId(null)}
+        title="Edit Procurement Entry"
+        fields={(draft) => [
+          { key: "date", label: "Date", type: "date", required: true },
+          { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true, onChange: (val, setField) => {
+            const unitMap: Record<string, string> = { bricks: "Pcs", cement: "Bags", steel: "Kg", sand: "Trolly", crush: "ft" };
+            if (unitMap[val]) setField("unit", unitMap[val]);
+          } },
+          { key: "item", label: "Item", type: "text", required: true },
+          { key: "vendor", label: "Vendor", type: "text", required: true },
+          ...(draft.category === 'other' ? [] : [
+            { key: "quantity", label: "Quantity", type: "number", required: true },
+            { key: "unit", label: "Unit", type: "text", required: true },
+            { key: "rate", label: "Rate", type: "number", required: true }
+          ] as const),
+          { key: "paid", label: draft.category === 'other' ? "Total Amount Paid (PKR)" : "Paid", type: "number", required: true },
+        ]}
+        values={
+          editProcurementId
+            ? (() => {
+                const record = procurements.find((r: any) => (r.id || r._id) === editProcurementId);
+                if (!record) return null;
+                return { ...record };
+              })()
+            : null
+        }
+        onSave={(v) => {
+          const isOther = v.category === 'other';
+          api.updateProcurement(editProcurementId!, { 
+            date: String(v.date), 
+            item: String(v.item), 
+            category: v.category as any, 
+            quantity: isOther ? 0 : Number(v.quantity), 
+            unit: isOther ? "Lump Sum" : String(v.unit), 
+            rate: isOther ? 0 : Number(v.rate), 
+            vendor: String(v.vendor), 
+            paid: Number(v.paid) 
+          }).then(() => {
+            queryClient.invalidateQueries({ queryKey: ["procurements"] });
+            toast.success("Procurement updated");
+            setEditProcurementId(null);
+          }).catch(e => toast.error(e.message));
+        }}
+      />
+
+      <EditRecordDialog
+        open={editPaymentId !== null}
+        onOpenChange={(v) => !v && setEditPaymentId(null)}
+        title="Edit Payment"
+        fields={[
+          { key: "date", label: "Date", type: "date", required: true },
+          { key: "amount", label: "Amount (PKR)", type: "number", required: true },
+          { key: "note", label: "Note / Ref", type: "text" },
+        ]}
+        values={
+          editPaymentId
+            ? (() => {
+                const record = contractorPayments.find((r: any) => (r.id || r._id) === editPaymentId);
+                if (!record) return null;
+                return { ...record };
+              })()
+            : null
+        }
+        onSave={(v) => {
+          api.updateContractorPayment(editPaymentId!, { date: String(v.date), amount: Number(v.amount), note: String(v.note) }).then(() => {
+            queryClient.invalidateQueries({ queryKey: ["contractorPayments"] });
+            toast.success("Payment updated");
+            setEditPaymentId(null);
+          }).catch(e => toast.error(e.message));
+        }}
+      />
     </AppShell>
   );
 }
