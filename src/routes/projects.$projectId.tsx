@@ -258,11 +258,14 @@ function ProjectLedger() {
   const contractorsPaid = contractors.reduce((s: any, c: any) => s + paidByContractor(c._id || c.id), 0);
   const contractorsTotal = contractors.reduce((s: any, c: any) => s + c.agreedAmount, 0);
 
+  const materialPaidTotal = procurement.reduce((s: any, r: any) => s + (r.paid || 0), 0);
   const overallProjectSpent = materialPaidTotal + contractorsPaid;
   const customerBalance = customerReceived - overallProjectSpent;
   const spentPercentage = customerReceived > 0 ? ((overallProjectSpent / customerReceived) * 100).toFixed(1) : 0;
+  
   const filteredMaterial = materialTab === "all" ? procurement : procurement.filter((r: any) => r.category === materialTab);
   const filteredTotal = filteredMaterial.reduce((s: any, r: any) => s + getProcurementTotal(r), 0);
+  const filteredPaid = filteredMaterial.reduce((s: any, r: any) => s + (r.paid || 0), 0);
   const qtyByItem = filteredMaterial.reduce<Record<string, { qty: number; unit: string }>>((acc: any, r: any) => {
     const key = `${r.category} (${r.unit})`;
     acc[key] = acc[key] ?? { qty: 0, unit: r.unit };
@@ -271,9 +274,6 @@ function ProjectLedger() {
   }, {});
 
   const contractorsInTab = contractors.filter((c: any) => c.role === contractorTab);
-
-  const materialPaidTotal = procurement.reduce((s: any, r: any) => s + (r.paid || 0), 0);
-  const filteredPaid = filteredMaterial.reduce((s: any, r: any) => s + (r.paid || 0), 0);
 
   // CSV downloads (client-side)
   const downloadCSV = (filename: string, rows: (string | number)[][]) => {
