@@ -11,7 +11,7 @@ import { InvoiceTemplate, InvoiceData, InvoiceItem } from "../invoices/invoice-t
 import { toJpeg } from "html-to-image";
 import jsPDF from "jspdf";
 
-export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open: boolean; onOpenChange: (o: boolean) => void; initialData?: any }) {
   const queryClient = useQueryClient();
   const printRef = useRef<HTMLDivElement>(null);
   
@@ -29,6 +29,44 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
   ]);
   
   const [generatedInvoiceNo, setGeneratedInvoiceNo] = useState<string>("");
+
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setCustomerName(initialData.customerName || "");
+        setCustomerPhone(initialData.customerPhone || "");
+        setCustomerEmail(initialData.customerEmail || "");
+        setPropertyDetails(initialData.propertyDetails || "");
+        setOfficeService(initialData.officeService || "");
+        setDate(initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
+        setTotalPropertyAmount(initialData.totalPropertyAmount || 0);
+        
+        // Deep copy items to avoid mutating initialData
+        const initItems = initialData.items && initialData.items.length > 0 
+          ? JSON.parse(JSON.stringify(initialData.items)) 
+          : [{ description: "", date: new Date().toISOString().split("T")[0], amount: 0 }];
+        
+        // Ensure dates in items are properly formatted for inputs
+        const formattedItems = initItems.map((item: any) => ({
+          ...item,
+          date: item.date ? (item.date.includes('T') ? item.date.split('T')[0] : new Date(item.date).toISOString().split("T")[0]) : new Date().toISOString().split("T")[0]
+        }));
+        
+        setItems(formattedItems);
+        setGeneratedInvoiceNo(initialData.invoiceNumber || "");
+      } else {
+        setCustomerName("");
+        setCustomerPhone("");
+        setCustomerEmail("");
+        setPropertyDetails("");
+        setOfficeService("");
+        setDate(new Date().toISOString().split("T")[0]);
+        setTotalPropertyAmount(0);
+        setItems([{ description: "", date: new Date().toISOString().split("T")[0], amount: 0 }]);
+        setGeneratedInvoiceNo("");
+      }
+    }
+  }, [open, initialData]);
 
   const totalPaid = items.reduce((sum, item) => sum + item.amount, 0);
   const remainingBalance = totalPropertyAmount - totalPaid;
@@ -59,7 +97,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
     try {
       setLoading(true);
       
-      // 1. Create invoice in DB to get Invoice Number
+      // 1. Create or Update invoice in DB
       const invoiceData = {
         date,
         customerName,
@@ -69,11 +107,19 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
         officeService,
         totalPropertyAmount,
         items,
-        status: "Unpaid"
+        status: initialData ? initialData.status : "Unpaid"
       };
       
-      const createdInvoice = await api.createInvoice(invoiceData);
-      setGeneratedInvoiceNo(createdInvoice.invoiceNumber);
+      let invoiceId = "";
+      if (initialData) {
+        await api.updateInvoice(initialData._id, invoiceData);
+        invoiceId = initialData._id;
+        setGeneratedInvoiceNo(initialData.invoiceNumber);
+      } else {
+        const createdInvoice = await api.createInvoice(invoiceData);
+        invoiceId = createdInvoice._id;
+        setGeneratedInvoiceNo(createdInvoice.invoiceNumber);
+      }
 
       // We need a short delay for React to render the hidden InvoiceTemplate with the new invoice number
       setTimeout(async () => {
@@ -96,23 +142,14 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
           const pdfBase64 = pdf.output("datauristring");
 
           // 3. Send Base64 to backend to upload securely
-          await api.updateInvoice(createdInvoice._id, { pdfBase64 });
+          await api.updateInvoice(invoiceId, { pdfBase64 });
 
           queryClient.invalidateQueries({ queryKey: ["invoices"] });
           setLoading(false);
           onOpenChange(false);
-          // Reset form
-          setCustomerName("");
-          setCustomerPhone("");
-          setCustomerEmail("");
-          setPropertyDetails("");
-          setOfficeService("");
-          setTotalPropertyAmount(0);
-          setItems([{ description: "", date: new Date().toISOString().split("T")[0], amount: 0 }]);
-          setGeneratedInvoiceNo("");
         } catch (err) {
           console.error("PDF/Upload Error:", err);
-          alert("Invoice was created, but PDF upload failed.");
+          alert("Invoice saved, but PDF upload failed.");
           setLoading(false);
           onOpenChange(false);
         }
@@ -120,7 +157,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
 
     } catch (error) {
       console.error(error);
-      alert("Failed to create invoice.");
+      alert("Failed to save invoice.");
       setLoading(false);
     }
   };
@@ -142,8 +179,10 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
       <Dialog open={open} onOpenChange={!loading ? onOpenChange : undefined}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create Professional Invoice</DialogTitle>
-            <DialogDescription>Fill in the details below. A beautiful PDF will be generated and saved to history automatically.</DialogDescription>
+            <DialogTitle>{initialData ? "Edit Invoice" : "Create New Invoice"}</DialogTitle>
+            <DialogDescription>
+              {initialData ? "Update the invoice details below. The PDF will be regenerated automatically." : "Fill out the details below to generate a new invoice."}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-6 mt-2">
@@ -219,8 +258,14 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
-              <Button type="submit" className="bg-[color:var(--sre-blue)] text-white" disabled={loading}>
-                {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating PDF...</> : "Create & Generate PDF"}
+              <Button type="submit" disabled={loading} className="w-full bg-[#082041] hover:bg-[#082041]/90">
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {initialData ? "Saving & Regenerating PDF..." : "Creating & Generating PDF..."}
+                  </>
+                ) : (
+                  initialData ? "Update Invoice" : "Create Invoice"
+                )}
               </Button>
             </DialogFooter>
           </form>

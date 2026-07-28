@@ -3,7 +3,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Loader2, Plus, FileText, Send, Trash2, Printer } from "lucide-react";
+import { Loader2, Plus, FileText, Send, Trash2, Printer, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -17,6 +17,7 @@ export const Route = createFileRoute("/invoices")({
 function InvoicesPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editInvoiceData, setEditInvoiceData] = useState<any>(null);
 
   const { data: invoices = [], isLoading: invLoad } = useQuery({
     queryKey: ["invoices"],
@@ -131,6 +132,12 @@ function InvoicesPage() {
                               </DropdownMenuItem>
                             </>
                           )}
+                          <DropdownMenuItem onClick={() => {
+                            setEditInvoiceData(inv);
+                            setIsCreateOpen(true);
+                          }} className="cursor-pointer">
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => shareOnWhatsApp(inv)} className="cursor-pointer text-emerald-600 focus:text-emerald-700">
                             <Send className="mr-2 h-4 w-4" /> Share
                           </DropdownMenuItem>
@@ -154,8 +161,14 @@ function InvoicesPage() {
           </table>
         </div>
       </div>
-
-      <CreateInvoiceDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+      <CreateInvoiceDialog 
+        open={isCreateOpen} 
+        onOpenChange={(v) => {
+          setIsCreateOpen(v);
+          if (!v) setEditInvoiceData(null);
+        }} 
+        initialData={editInvoiceData}
+      />
     </AppShell>
   );
 }
