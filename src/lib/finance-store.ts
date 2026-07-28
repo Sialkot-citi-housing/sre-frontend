@@ -84,6 +84,7 @@ export const OFFICE_EXPENSE_CATEGORIES = [
   "Travel",
   "Rent",
   "Miscellaneous",
+  "Home expense",
 ] as const;
 
 export type OfficeExpenseCategory = (typeof OFFICE_EXPENSE_CATEGORIES)[number];
