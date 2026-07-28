@@ -520,7 +520,23 @@ function OfficeExpenses() {
         {/* ========================================= */}
         {/* PRINT LAYOUT (Hidden on Screen) */}
         {/* ========================================= */}
-        <div className="hidden print:block w-[210mm] min-h-[297mm] mx-auto bg-white text-[#082041]" style={{ fontFamily: "'Inter', sans-serif", fontSize: "10pt" }}>
+        <div 
+          className="hidden print:block w-[210mm] min-h-[297mm] mx-auto bg-white text-[#082041] relative" 
+          style={{ 
+            fontFamily: "'Inter', sans-serif", 
+            fontSize: "10pt",
+            WebkitPrintColorAdjust: "exact",
+            printColorAdjust: "exact"
+          }}
+        >
+          <style type="text/css">
+            {`
+              @media print {
+                @page { size: A4; margin: 0; }
+                body { margin: 0; padding: 0; }
+              }
+            `}
+          </style>
           
           {/* HEADER */}
           <div className="flex relative h-[140px] mb-8 border-b-8 border-[#D51017]">
@@ -541,8 +557,8 @@ function OfficeExpenses() {
               </div>
               
               <div className="border-l-2 border-gray-300 pl-6 space-y-1">
-                <h1 className="text-xl font-bold tracking-widest text-[#082041]">SIALKOT REAL ESTATE</h1>
-                <p className="text-[10px] text-[#082041] mb-2 font-medium">Building Trust, Delivering Excellence</p>
+                <h1 className="text-xl font-bold tracking-widest text-[#082041]" style={{ color: "#082041" }}>SIALKOT REAL ESTATE</h1>
+                <p className="text-[10px] text-[#082041] mb-2 font-medium" style={{ color: "#082041" }}>Building Trust, Delivering Excellence</p>
                 <div className="text-[9px] text-gray-700 flex items-center gap-2 mt-2"><MapPin size={10} color="#082041"/> Citi Housing, Sialkot, Punjab, Pakistan</div>
                 <div className="text-[9px] text-gray-700 flex items-center gap-2 mt-0.5"><Phone size={10} color="#082041"/> +92 300 1234567</div>
                 <div className="text-[9px] text-gray-700 flex items-center gap-2 mt-0.5"><Mail size={10} color="#082041"/> info@sialkotrealestate.com</div>
@@ -558,8 +574,8 @@ function OfficeExpenses() {
               }}
             >
               <div className="text-white pt-8 pl-20 pr-8 space-y-2">
-                <h1 className="text-3xl font-extrabold tracking-widest mb-4">DAILY REPORT</h1>
-                <div className="text-xs space-y-2">
+                <h1 className="text-3xl font-extrabold tracking-widest mb-4" style={{ color: "white" }}>DAILY REPORT</h1>
+                <div className="text-xs space-y-2" style={{ color: "white" }}>
                   <div className="grid grid-cols-[80px_1fr]"><span className="opacity-80">Report Date</span><span>: {new Date(endDate).toLocaleDateString("en-GB", {day:'numeric', month:'long', year:'numeric'})}</span></div>
                   <div className="grid grid-cols-[80px_1fr]"><span className="opacity-80">Day</span><span>: {new Date(endDate).toLocaleDateString("en-GB", {weekday: 'long'})}</span></div>
                   <div className="grid grid-cols-[80px_1fr]"><span className="opacity-80">Prepared By</span><span>: Accountant</span></div>
@@ -573,42 +589,42 @@ function OfficeExpenses() {
             <div className="grid grid-cols-3 gap-4">
               {/* Card 1 */}
               <div className="border border-[#082041] rounded-lg overflow-hidden bg-white">
-                <div className="bg-[#082041] text-white text-[10px] font-bold tracking-wider py-2 text-center">PREVIOUS DAY BALANCE (IN HAND)</div>
+                <div className="bg-[#082041] text-white text-[10px] font-bold tracking-wider py-2 text-center" style={{ backgroundColor: "#082041", color: "white" }}>PREVIOUS DAY BALANCE (IN HAND)</div>
                 <div className="p-4 flex items-center">
-                  <div className="w-12 h-12 bg-[#082041] rounded-full flex items-center justify-center text-white mr-4 shrink-0">
+                  <div className="w-12 h-12 bg-[#082041] rounded-full flex items-center justify-center text-white mr-4 shrink-0" style={{ backgroundColor: "#082041", color: "white" }}>
                     <Wallet size={24} />
                   </div>
                   <div>
-                    <div className="text-[#082041] text-xs font-bold">PKR</div>
-                    <div className="text-[#082041] text-xl font-black">{fmtPKR(openingBalance)}</div>
+                    <div className="text-[#082041] text-xs font-bold" style={{ color: "#082041" }}>PKR</div>
+                    <div className="text-[#082041] text-xl font-black" style={{ color: "#082041" }}>{fmtPKR(openingBalance)}</div>
                   </div>
                 </div>
               </div>
 
               {/* Card 2 */}
               <div className="border border-[#082041] rounded-lg overflow-hidden bg-white">
-                <div className="bg-[#082041] text-white text-[10px] font-bold tracking-wider py-2 text-center">RECEIVED FROM OWNER (TODAY)</div>
+                <div className="bg-[#082041] text-white text-[10px] font-bold tracking-wider py-2 text-center" style={{ backgroundColor: "#082041", color: "white" }}>RECEIVED FROM OWNER (TODAY)</div>
                 <div className="p-4 flex items-center">
-                  <div className="w-12 h-12 bg-[#082041] rounded-full flex items-center justify-center text-white mr-4 shrink-0">
+                  <div className="w-12 h-12 bg-[#082041] rounded-full flex items-center justify-center text-white mr-4 shrink-0" style={{ backgroundColor: "#082041", color: "white" }}>
                     <Landmark size={24} />
                   </div>
                   <div>
-                    <div className="text-[#082041] text-xs font-bold">PKR</div>
-                    <div className="text-[#082041] text-xl font-black">{fmtPKR(periodFundsTotal)}</div>
+                    <div className="text-[#082041] text-xs font-bold" style={{ color: "#082041" }}>PKR</div>
+                    <div className="text-[#082041] text-xl font-black" style={{ color: "#082041" }}>{fmtPKR(periodFundsTotal)}</div>
                   </div>
                 </div>
               </div>
 
               {/* Card 3 */}
               <div className="border border-[#082041] rounded-lg overflow-hidden bg-white">
-                <div className="bg-[#082041] text-white text-[10px] font-bold tracking-wider py-2 text-center">TODAY'S TOTAL EXPENSES</div>
+                <div className="bg-[#082041] text-white text-[10px] font-bold tracking-wider py-2 text-center" style={{ backgroundColor: "#082041", color: "white" }}>TODAY'S TOTAL EXPENSES</div>
                 <div className="p-4 flex items-center">
-                  <div className="w-12 h-12 bg-[#082041] rounded-full flex items-center justify-center text-white mr-4 shrink-0">
+                  <div className="w-12 h-12 bg-[#082041] rounded-full flex items-center justify-center text-white mr-4 shrink-0" style={{ backgroundColor: "#082041", color: "white" }}>
                     <Building2 size={24} />
                   </div>
                   <div>
-                    <div className="text-[#082041] text-xs font-bold">PKR</div>
-                    <div className="text-[#082041] text-xl font-black">{fmtPKR(periodExpensesTotal)}</div>
+                    <div className="text-[#082041] text-xs font-bold" style={{ color: "#082041" }}>PKR</div>
+                    <div className="text-[#082041] text-xl font-black" style={{ color: "#082041" }}>{fmtPKR(periodExpensesTotal)}</div>
                   </div>
                 </div>
               </div>
@@ -616,15 +632,15 @@ function OfficeExpenses() {
 
             {/* Payments Received Table */}
             <div className="border border-[#082041] rounded-lg overflow-hidden">
-              <div className="bg-[#082041] text-white text-[11px] font-bold tracking-wider py-2 text-center uppercase">Payments Received Today</div>
+              <div className="bg-[#082041] text-white text-[11px] font-bold tracking-wider py-2 text-center uppercase" style={{ backgroundColor: "#082041", color: "white" }}>Payments Received Today</div>
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[#082041]/20 bg-[#f8fafc]">
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase w-10 text-center">#</th>
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase">Description</th>
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase">From</th>
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase">Payment Method</th>
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase text-right">Amount (PKR)</th>
+                  <tr className="border-b border-[#082041]/20 bg-[#f8fafc]" style={{ backgroundColor: "#f8fafc" }}>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase w-10 text-center" style={{ color: "#082041" }}>#</th>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase" style={{ color: "#082041" }}>Description</th>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase" style={{ color: "#082041" }}>From</th>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase" style={{ color: "#082041" }}>Payment Method</th>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase text-right" style={{ color: "#082041" }}>Amount (PKR)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -651,17 +667,17 @@ function OfficeExpenses() {
             </div>
 
             {/* Today's Expenses Table */}
-            <div className="border border-[#082041] rounded-lg overflow-hidden">
-              <div className="bg-[#082041] text-white text-[11px] font-bold tracking-wider py-2 text-center uppercase">Today's Expenses</div>
+            <div className="border border-[#082041] rounded-lg overflow-hidden mt-6">
+              <div className="bg-[#082041] text-white text-[11px] font-bold tracking-wider py-2 text-center uppercase" style={{ backgroundColor: "#082041", color: "white" }}>Today's Expenses</div>
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[#082041]/20 bg-[#f8fafc]">
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase w-10 text-center">#</th>
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase">Description</th>
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase">Category</th>
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase">Paid To</th>
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase">Payment Method</th>
-                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase text-right">Amount (PKR)</th>
+                  <tr className="border-b border-[#082041]/20 bg-[#f8fafc]" style={{ backgroundColor: "#f8fafc" }}>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase w-10 text-center" style={{ color: "#082041" }}>#</th>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase" style={{ color: "#082041" }}>Description</th>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase" style={{ color: "#082041" }}>Category</th>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase" style={{ color: "#082041" }}>Paid To</th>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase" style={{ color: "#082041" }}>Payment Method</th>
+                    <th className="py-2 px-4 text-[9px] font-bold text-[#082041] uppercase text-right" style={{ color: "#082041" }}>Amount (PKR)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -689,35 +705,35 @@ function OfficeExpenses() {
             </div>
 
             {/* Bottom Balance Card */}
-            <div className="border border-[#082041] rounded-lg overflow-hidden bg-white p-4 flex items-center justify-between">
+            <div className="border border-[#082041] rounded-lg overflow-hidden bg-white p-4 flex items-center justify-between mt-6">
               <div className="flex items-center gap-6">
-                <div className="w-14 h-14 bg-[#082041] rounded-lg flex items-center justify-center text-white shrink-0">
+                <div className="w-14 h-14 bg-[#082041] rounded-lg flex items-center justify-center text-white shrink-0" style={{ backgroundColor: "#082041", color: "white" }}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="16" y1="18" x2="16" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line></svg>
                 </div>
                 <div>
-                  <div className="text-[#082041] text-sm font-bold tracking-wide">BALANCE IN HAND (END OF DAY)</div>
+                  <div className="text-[#082041] text-sm font-bold tracking-wide" style={{ color: "#082041" }}>BALANCE IN HAND (END OF DAY)</div>
                   <div className="text-gray-500 text-[10px] mt-1">(Previous Balance + Received - Today's Expenses)</div>
                 </div>
               </div>
               <div className="flex items-baseline gap-4 pr-4">
-                <div className="text-[#082041] text-sm font-bold">PKR</div>
-                <div className="text-[#082041] text-3xl font-black">{fmtPKR(closingBalance)}</div>
+                <div className="text-[#082041] text-sm font-bold" style={{ color: "#082041" }}>PKR</div>
+                <div className="text-[#082041] text-3xl font-black" style={{ color: "#082041" }}>{fmtPKR(closingBalance)}</div>
               </div>
             </div>
 
             {/* Signatures */}
-            <div className="border border-[#082041] rounded-lg h-24 flex mt-8">
+            <div className="border border-[#082041] rounded-lg h-24 flex mt-6">
               <div className="flex-1 border-r border-[#082041] p-4 flex flex-col justify-end items-center">
-                <div className="text-[10px] font-bold text-[#082041]">OWNER SIGNATURE</div>
+                <div className="text-[10px] font-bold text-[#082041]" style={{ color: "#082041" }}>OWNER SIGNATURE</div>
               </div>
               <div className="flex-1 p-4 flex flex-col justify-end items-center">
-                <div className="text-[10px] font-bold text-[#082041]">COMPANY STAMP</div>
+                <div className="text-[10px] font-bold text-[#082041]" style={{ color: "#082041" }}>COMPANY STAMP</div>
               </div>
             </div>
 
             {/* Footer text */}
-            <div className="text-center pt-6 space-y-1">
-              <div className="text-[#082041] font-bold text-[11px]">Thank you for choosing Sialkot Real Estate.</div>
+            <div className="text-center pt-4 space-y-1">
+              <div className="text-[#082041] font-bold text-[11px]" style={{ color: "#082041" }}>Thank you for choosing Sialkot Real Estate.</div>
               <div className="text-gray-600 italic font-serif text-[13px]">We build more than structures, we build relationships.</div>
             </div>
 
