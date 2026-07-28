@@ -462,13 +462,19 @@ function OfficeExpenses() {
                 </TableBody>
               </Table>
             </div>
-            <div className="flex justify-between border-t border-border bg-secondary/40 px-6 py-3 text-sm">
-              <span className="font-medium text-muted-foreground">
-                Previous Balance: PKR {fmtPKR(openingBalance)}
-              </span>
-              <span className="font-semibold text-foreground">
-                Total (Received + Previous): <span className="text-emerald-700">PKR {fmtPKR(periodFundsTotal + openingBalance)}</span>
-              </span>
+            <div className="flex flex-col gap-1 border-t border-border bg-secondary/40 px-6 py-3 text-sm">
+              <div className="flex justify-between">
+                <span className="font-medium text-muted-foreground">Previous Balance</span>
+                <span className="font-medium text-foreground">PKR {fmtPKR(openingBalance)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-muted-foreground">Received Period</span>
+                <span className="font-medium text-foreground">PKR {fmtPKR(periodFundsTotal)}</span>
+              </div>
+              <div className="flex justify-between pt-1 mt-1 border-t border-border/50">
+                <span className="font-bold text-foreground">Total Cash Available</span>
+                <span className="font-bold text-emerald-700">PKR {fmtPKR(periodFundsTotal + openingBalance)}</span>
+              </div>
             </div>
           </div>
 
@@ -643,11 +649,11 @@ function OfficeExpenses() {
                 <tbody>
                   {periodFundsList.map((f: any, idx: number) => (
                     <tr key={f._id} className="border-b border-[#082041]/10">
-                      <td className="py-2 px-4 text-[10px] font-bold text-center">{idx + 1}</td>
-                      <td className="py-2 px-4 text-[10px] font-bold">{f.note || "Funds Received"}</td>
-                      <td className="py-2 px-4 text-[10px] font-bold">{f.from}</td>
-                      <td className="py-2 px-4 text-[10px] font-bold">{f.method}</td>
-                      <td className="py-2 px-4 text-[10px] font-bold text-right">{fmtPKR(f.amount)}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold text-center">{idx + 1}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold">{f.note || "Funds Received"}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold">{f.from}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold">{f.method}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold text-right">{fmtPKR(f.amount)}</td>
                     </tr>
                   ))}
                   {periodFundsList.length < 5 && Array.from({length: 5 - periodFundsList.length}).map((_, i) => (
@@ -656,8 +662,8 @@ function OfficeExpenses() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={4} className="py-3 px-4 text-right font-bold text-[11px] text-[#082041]">TOTAL RECEIVED</td>
-                    <td className="py-3 px-4 text-right font-bold text-sm text-[#082041]">{fmtPKR(periodFundsTotal)}</td>
+                    <td colSpan={4} className="py-3 px-4 text-right font-extrabold text-[12px] text-[#082041]">TOTAL RECEIVED</td>
+                    <td className="py-3 px-4 text-right font-extrabold text-[13px] text-[#082041]">{fmtPKR(periodFundsTotal)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -680,12 +686,12 @@ function OfficeExpenses() {
                 <tbody>
                   {periodExpensesList.map((e: any, idx: number) => (
                     <tr key={e._id} className="border-b border-[#082041]/10">
-                      <td className="py-2 px-4 text-[10px] font-bold text-center">{idx + 1}</td>
-                      <td className="py-2 px-4 text-[10px] font-bold">{e.description}</td>
-                      <td className="py-2 px-4 text-[10px] font-bold">{e.category}</td>
-                      <td className="py-2 px-4 text-[10px] font-bold">{e.paidTo}</td>
-                      <td className="py-2 px-4 text-[10px] font-bold">{e.method}</td>
-                      <td className="py-2 px-4 text-[10px] font-bold text-right">{fmtPKR(e.amount)}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold text-center">{idx + 1}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold">{e.description}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold">{e.category}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold">{e.paidTo}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold">{e.method}</td>
+                      <td className="py-2 px-4 text-[11px] font-extrabold text-right">{fmtPKR(e.amount)}</td>
                     </tr>
                   ))}
                   {periodExpensesList.length < 5 && Array.from({length: 5 - periodExpensesList.length}).map((_, i) => (
@@ -694,28 +700,17 @@ function OfficeExpenses() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={5} className="py-3 px-4 text-right font-bold text-[11px] text-[#082041]">TOTAL EXPENSES</td>
-                    <td className="py-3 px-4 text-right font-bold text-sm text-[#082041]">{fmtPKR(periodExpensesTotal)}</td>
+                    <td colSpan={5} className="py-3 px-4 text-right font-extrabold text-[12px] text-[#082041]">TOTAL EXPENSES</td>
+                    <td className="py-3 px-4 text-right font-extrabold text-[13px] text-[#082041]">{fmtPKR(periodExpensesTotal)}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
 
-            {/* Bottom Balance Card */}
-            <div className="border border-[#082041] rounded-lg overflow-hidden bg-white p-4 flex items-center justify-between mt-6">
-              <div className="flex items-center gap-6">
-                <div className="w-14 h-14 bg-[#082041] rounded-lg flex items-center justify-center text-white shrink-0" style={{ backgroundColor: "#082041", color: "white" }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="16" y1="18" x2="16" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line></svg>
-                </div>
-                <div>
-                  <div className="text-[#082041] text-sm font-bold tracking-wide" style={{ color: "#082041" }}>BALANCE IN HAND (END OF DAY)</div>
-                  <div className="text-gray-500 text-[10px] mt-1">(Previous Balance + Received - Today's Expenses)</div>
-                </div>
-              </div>
-              <div className="flex items-baseline gap-4 pr-4">
-                <div className="text-[#082041] text-sm font-bold" style={{ color: "#082041" }}>PKR</div>
-                <div className="text-[#082041] text-3xl font-black" style={{ color: "#082041" }}>{fmtPKR(closingBalance)}</div>
-              </div>
+            {/* Bottom Balance Simple Line */}
+            <div className="flex items-center justify-between border-y-2 border-[#082041] py-4 px-6 mt-6 bg-[#082041]/5">
+              <span className="text-[13px] font-extrabold tracking-wider text-[#082041]">BALANCE IN HAND (END OF DAY)</span>
+              <span className="text-xl font-black text-[#082041]">PKR {fmtPKR(closingBalance)}</span>
             </div>
 
 
