@@ -12,6 +12,9 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  Printer,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -282,10 +285,12 @@ function AddExpenseDialog() {
 
 function OfficeExpenses() {
   useEffect(() => {
-    document.title = "Office Expenses | Sialkot Real Estate";
+    document.title = "Daily Cash Book | Sialkot Real Estate";
   }, []);
   const queryClient = useQueryClient();
   const [editOfficeExpenseId, setEditOfficeExpenseId] = useState<string | null>(null);
+  
+  const [selectedDate, setSelectedDate] = useState<string>(today());
 
   const handleEdit = (id: string) => {
     if (id.startsWith('off-')) setEditOfficeExpenseId(id.slice(4));
@@ -303,31 +308,40 @@ function OfficeExpenses() {
 
   const isLoading = isLoadingFunds || isLoadingOffice;
 
-  // Unified expense rows (now only Office Expenses)
-  const rows: Row[] = useMemo(() => {
-    const list: Row[] = [];
-    officeExpenses.forEach((e: any) => {
-      list.push({
-        id: `off-${e._id}`,
-        date: e.date,
-        project: "Office",
-        type: "Office",
-        description: e.description,
-        detail: `${e.category} · ${e.paidTo} · ${e.method}`,
-        amount: e.amount,
-      });
+  const { openingBalance, todayFundsList, todayExpensesList, todayFundsTotal, todayExpensesTotal, closingBalance } = useMemo(() => {
+    let openingFunds = 0;
+    let openingExpenses = 0;
+
+    const todayFundsList: any[] = [];
+    const todayExpensesList: any[] = [];
+    let todayFundsTotal = 0;
+    let todayExpensesTotal = 0;
+
+    funds.forEach((f: any) => {
+      if (f.date < selectedDate) openingFunds += f.amount;
+      else if (f.date === selectedDate) {
+        todayFundsList.push(f);
+        todayFundsTotal += f.amount;
+      }
     });
-    return list.sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [officeExpenses]);
-  const totalFunds = funds.reduce((s: number, f: any) => s + f.amount, 0);
-  const totalSpent = rows.reduce((s, r) => s + r.amount, 0);
-  const balance = totalFunds - totalSpent;
-  const todayStr = today();
-  const spentToday = rows.filter((r) => r.date === todayStr).reduce((s, r) => s + r.amount, 0);
+
+    officeExpenses.forEach((e: any) => {
+      if (e.date < selectedDate) openingExpenses += e.amount;
+      else if (e.date === selectedDate) {
+        todayExpensesList.push(e);
+        todayExpensesTotal += e.amount;
+      }
+    });
+
+    const openingBalance = openingFunds - openingExpenses;
+    const closingBalance = openingBalance + todayFundsTotal - todayExpensesTotal;
+
+    return { openingBalance, todayFundsList, todayExpensesList, todayFundsTotal, todayExpensesTotal, closingBalance };
+  }, [funds, officeExpenses, selectedDate]);
 
   if (isLoading) {
     return (
-      <AppShell title="Office Cash & Expenses" subtitle="Accountant cash book — funds from owner and every rupee spent">
+      <AppShell title="Daily Cash Book" subtitle="Accountant daily ledger — opening balances, funds, and expenses">
         <div className="flex h-64 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-[color:var(--sre-blue)]" />
         </div>
@@ -335,136 +349,126 @@ function OfficeExpenses() {
     );
   }
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const adjustDate = (days: number) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + days);
+    setSelectedDate(d.toISOString().split('T')[0]);
+  };
+
   return (
     <AppShell
-      title="Office Cash & Expenses"
-      subtitle="Accountant cash book — funds from owner and every rupee spent"
+      title="Daily Cash Book"
+      subtitle="Accountant daily ledger — opening balances, funds, and expenses"
     >
-      <div className="space-y-6">
-        {/* Cash-in-hand summary */}
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Accountant Cash Book
-              </div>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
-                Cash in hand: <span className="text-[color:var(--sre-blue)]">PKR {fmtPKR(balance)}</span>
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Received PKR {fmtPKR(totalFunds)} from owner · Spent PKR {fmtPKR(totalSpent)} to date.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <AddFundDialog />
-              <AddExpenseDialog />
-            </div>
+      <div className="space-y-6 print:m-0 print:p-0">
+        
+        {/* Top Controls (Hidden in Print) */}
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 print:hidden">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => adjustDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Input type="date" className="w-auto font-medium" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+            <Button variant="outline" size="icon" onClick={() => adjustDate(1)}><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedDate(today())}>Today</Button>
           </div>
+          <div className="flex flex-wrap gap-2">
+            <AddFundDialog />
+            <AddExpenseDialog />
+            <Button variant="outline" size="sm" className="gap-2" onClick={handlePrint}>
+              <Printer className="h-4 w-4" /> Print Daily Report
+            </Button>
+          </div>
+        </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatTile icon={<ArrowDownCircle className="h-4 w-4" />} label="Funds received" value={`PKR ${fmtPKR(totalFunds)}`} tone="positive" />
-            <StatTile icon={<ArrowUpCircle className="h-4 w-4" />} label="Total spent" value={`PKR ${fmtPKR(totalSpent)}`} tone="negative" />
-            <StatTile icon={<Wallet className="h-4 w-4" />} label="Balance in hand" value={`PKR ${fmtPKR(balance)}`} tone="balance" />
-            <StatTile icon={<CalendarDays className="h-4 w-4" />} label="Spent today" value={`PKR ${fmtPKR(spentToday)}`} />
+        {/* Print Header (Visible only in Print) */}
+        <div className="hidden print:block mb-6 border-b-2 border-black pb-4 text-center">
+          <h1 className="text-2xl font-bold uppercase tracking-widest text-black">Daily Cash Book</h1>
+          <p className="mt-1 text-sm font-medium text-gray-600">Date: {new Date(selectedDate).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        </div>
+
+        {/* Daily Summary */}
+        <div className="rounded-xl border border-border bg-card p-6 print:border-black print:rounded-none">
+          <h2 className="text-lg font-semibold text-foreground print:text-black">Balance Overview — {selectedDate}</h2>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <StatTile icon={<Wallet className="h-4 w-4" />} label="Opening Balance" value={`PKR ${fmtPKR(openingBalance)}`} />
+            <StatTile icon={<ArrowDownCircle className="h-4 w-4" />} label="Received Today" value={`PKR ${fmtPKR(todayFundsTotal)}`} tone="positive" />
+            <StatTile icon={<ArrowUpCircle className="h-4 w-4" />} label="Paid Today" value={`PKR ${fmtPKR(todayExpensesTotal)}`} tone="negative" />
+            <StatTile icon={<Landmark className="h-4 w-4" />} label="Closing Balance" value={`PKR ${fmtPKR(closingBalance)}`} tone="balance" />
           </div>
         </div>
 
         {/* Funds table */}
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-4">
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
-                <Landmark className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-foreground">Funds Received from Owner</h3>
-                <p className="text-xs text-muted-foreground">Every top-up from the director to the accountant.</p>
-              </div>
-            </div>
-            <AddFundDialog />
+        <div className="overflow-hidden rounded-xl border border-border bg-card print:border-black print:rounded-none">
+          <div className="border-b border-border px-6 py-4 print:border-black print:px-2 print:py-2">
+            <h3 className="text-base font-semibold text-emerald-700 print:text-black">Cash Received Today</h3>
           </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-secondary/60 hover:bg-secondary/60">
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Date</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">From</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Method</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Note</TableHead>
-                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Amount (PKR)</TableHead>
+                <TableRow className="bg-secondary/60 hover:bg-secondary/60 print:bg-gray-100">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">From</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Method</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Note</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Amount (PKR)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {funds.map((f: any) => (
-                  <TableRow key={f._id} className="border-border">
-                    <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{f.date}</TableCell>
-                    <TableCell className="text-sm text-foreground">{f.from}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{f.method}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{f.note || "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(f.amount)}</TableCell>
+                {todayFundsList.map((f: any) => (
+                  <TableRow key={f._id} className="border-border print:border-gray-300">
+                    <TableCell className="text-sm font-medium text-foreground print:text-black">{f.from}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground print:text-black">{f.method}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground print:text-black">{f.note || "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold text-emerald-700 print:text-black">{fmtPKR(f.amount)}</TableCell>
                   </TableRow>
                 ))}
-                {funds.length === 0 && (
+                {todayFundsList.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                      No funds recorded yet.
+                    <TableCell colSpan={4} className="py-6 text-center text-sm text-muted-foreground print:text-black">
+                      No funds received today.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-          <div className="flex justify-between border-t border-border bg-secondary/40 px-6 py-3 text-sm">
-            <span className="text-muted-foreground">{funds.length} entries</span>
-            <span className="font-semibold text-foreground">
-              Total received: <span className="text-emerald-700">PKR {fmtPKR(totalFunds)}</span>
-            </span>
-          </div>
+          {todayFundsList.length > 0 && (
+            <div className="flex justify-end border-t border-border bg-secondary/40 px-6 py-3 text-sm print:border-black print:bg-white print:px-2 print:py-2">
+              <span className="font-semibold text-foreground print:text-black">
+                Total Received: <span className="text-emerald-700 print:text-black">PKR {fmtPKR(todayFundsTotal)}</span>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Expenses table */}
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-[color:var(--sre-red)]/10 p-2 text-[color:var(--sre-red)]">
-                <Building2 className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-foreground">Expenses Log</h3>
-                <p className="text-xs text-muted-foreground">
-                  Standalone office overhead and day-to-day spending.
-                </p>
-              </div>
-            </div>
-            <AddExpenseDialog />
+        <div className="overflow-hidden rounded-xl border border-border bg-card print:border-black print:rounded-none">
+          <div className="border-b border-border px-6 py-4 print:border-black print:px-2 print:py-2">
+            <h3 className="text-base font-semibold text-[color:var(--sre-red)] print:text-black">Cash Paid Today</h3>
           </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-secondary/60 hover:bg-secondary/60">
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Date</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Project</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Type</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Description</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Detail</TableHead>
-                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Amount (PKR)</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                <TableRow className="bg-secondary/60 hover:bg-secondary/60 print:bg-gray-100">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Category</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Paid To</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Description</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Method</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Amount (PKR)</TableHead>
+                  <TableHead className="w-[50px] print:hidden"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.id} className="border-border transition-colors hover:bg-accent/40">
-                    <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{r.date}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${r.project === "Office" ? "bg-[color:var(--sre-red)]/10 text-[color:var(--sre-red)]" : "bg-[color:var(--sre-blue)]/10 text-[color:var(--sre-blue)]"}`}>
-                        {r.project}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.type}</TableCell>
-                    <TableCell className="text-sm text-foreground">{r.description}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{r.detail}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(r.amount)}</TableCell>
-                    <TableCell className="text-right">
+                {todayExpensesList.map((e) => (
+                  <TableRow key={e._id} className="border-border transition-colors hover:bg-accent/40 print:border-gray-300">
+                    <TableCell className="text-sm font-medium text-foreground print:text-black">{e.category}</TableCell>
+                    <TableCell className="text-sm text-foreground print:text-black">{e.paidTo}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground print:text-black">{e.description}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground print:text-black">{e.method}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold text-foreground print:text-black">{fmtPKR(e.amount)}</TableCell>
+                    <TableCell className="text-right print:hidden">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-secondary/80">
@@ -472,11 +476,11 @@ function OfficeExpenses() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40 bg-card">
-                          <DropdownMenuItem onClick={() => handleEdit(r.id)} className="cursor-pointer text-sm font-medium">
+                          <DropdownMenuItem onClick={() => handleEdit(`off-${e._id}`)} className="cursor-pointer text-sm font-medium">
                             <Pencil className="mr-2 h-4 w-4 text-muted-foreground" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete(r.id)} className="cursor-pointer text-sm font-medium text-[color:var(--sre-red)] focus:bg-[color:var(--sre-red)]/10 focus:text-[color:var(--sre-red)]">
+                          <DropdownMenuItem onClick={() => handleDelete(`off-${e._id}`)} className="cursor-pointer text-sm font-medium text-[color:var(--sre-red)] focus:bg-[color:var(--sre-red)]/10 focus:text-[color:var(--sre-red)]">
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
                           </DropdownMenuItem>
@@ -485,22 +489,23 @@ function OfficeExpenses() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {rows.length === 0 && (
+                {todayExpensesList.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
-                      No expenses in this view.
+                    <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground print:text-black">
+                      No expenses recorded today.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/40 px-6 py-3 text-sm">
-            <span className="text-muted-foreground">{rows.length} entries</span>
-            <span className="font-semibold text-foreground">
-              Total: PKR {fmtPKR(totalSpent)}
-            </span>
-          </div>
+          {todayExpensesList.length > 0 && (
+            <div className="flex justify-end border-t border-border bg-secondary/40 px-6 py-3 text-sm print:border-black print:bg-white print:px-2 print:py-2">
+              <span className="font-semibold text-foreground print:text-black">
+                Total Paid: <span className="text-[color:var(--sre-red)] print:text-black">PKR {fmtPKR(todayExpensesTotal)}</span>
+              </span>
+            </div>
+          )}
         </div>
       </div>
       
