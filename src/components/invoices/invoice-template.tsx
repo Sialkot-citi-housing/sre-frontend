@@ -14,6 +14,8 @@ export type InvoiceData = {
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
+  propertyDetails?: string;
+  officeService?: string;
   items: InvoiceItem[];
   totalPropertyAmount: number;
 };
@@ -115,11 +117,28 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
       <div className="px-12 mt-10 flex gap-4">
         {/* Bill To */}
         <div className="flex-1">
-          <div className="bg-[#082041] text-white text-[9px] font-bold px-3 py-1 mb-3 rounded-sm border-b-2 border-[#D51017]">CUSTOMER DETAILS</div>
+          <div className="bg-[#082041] text-white text-[9px] font-bold px-3 py-1 mb-3 rounded-sm border-b-2 border-[#D51017]">CUSTOMER & PROPERTY DETAILS</div>
           <h3 className="font-bold text-[#082041] text-[11px] mb-2">{data.customerName || "Customer Name"}</h3>
           <div className="text-[9px] text-gray-700 space-y-1 leading-relaxed pr-4">
             <p className="pt-1 flex items-center gap-1.5"><Phone size={10} className="text-[#082041]"/> {data.customerPhone}</p>
             {data.customerEmail && <p className="flex items-center gap-1.5"><Mail size={10} className="text-[#082041]"/> {data.customerEmail}</p>}
+            
+            {(data.propertyDetails || data.officeService) && (
+              <div className="mt-4 pt-3 border-t border-gray-200 space-y-1.5">
+                {data.propertyDetails && (
+                  <div className="grid grid-cols-[80px_1fr] gap-2">
+                    <span className="font-semibold text-[#082041]">Property Details:</span>
+                    <span>{data.propertyDetails}</span>
+                  </div>
+                )}
+                {data.officeService && (
+                  <div className="grid grid-cols-[80px_1fr] gap-2">
+                    <span className="font-semibold text-[#082041]">Office Service:</span>
+                    <span>{data.officeService}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

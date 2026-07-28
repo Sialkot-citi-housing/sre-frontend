@@ -19,6 +19,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [propertyDetails, setPropertyDetails] = useState("");
+  const [officeService, setOfficeService] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [totalPropertyAmount, setTotalPropertyAmount] = useState<number>(0);
   
@@ -63,6 +65,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
         customerName,
         customerPhone,
         customerEmail,
+        propertyDetails,
+        officeService,
         totalPropertyAmount,
         items,
         status: "Unpaid"
@@ -101,6 +105,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
           setCustomerName("");
           setCustomerPhone("");
           setCustomerEmail("");
+          setPropertyDetails("");
+          setOfficeService("");
           setTotalPropertyAmount(0);
           setItems([{ description: "", date: new Date().toISOString().split("T")[0], amount: 0 }]);
           setGeneratedInvoiceNo("");
@@ -125,6 +131,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
     customerName,
     customerPhone,
     customerEmail,
+    propertyDetails,
+    officeService,
     totalPropertyAmount,
     items,
   };
@@ -149,12 +157,23 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
                 <Input required value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="03001234567" />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>Email (Optional)</Label>
                 <Input value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} placeholder="john@example.com" />
               </div>
               <div className="space-y-2">
                 <Label>Invoice Date</Label>
                 <Input type="date" required value={date} onChange={e => setDate(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Property / Plot Details</Label>
+                <Input value={propertyDetails} onChange={e => setPropertyDetails(e.target.value)} placeholder="e.g. 5 Marla Plot, Block A" />
+              </div>
+              <div className="space-y-2">
+                <Label>Office Service</Label>
+                <Input value={officeService} onChange={e => setOfficeService(e.target.value)} placeholder="e.g. Consultancy / File Transfer" />
               </div>
             </div>
 
