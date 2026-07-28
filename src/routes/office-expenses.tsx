@@ -609,48 +609,21 @@ function OfficeExpenses() {
           </div>
 
           <div className="px-8 pb-8 space-y-6">
-            {/* Top 3 Cards */}
-            <div className="grid grid-cols-3 gap-4">
-              {/* Card 1 */}
-              <div className="border border-[#082041] rounded-lg overflow-hidden bg-white">
-                <div className="bg-[#082041] text-white text-[10px] font-bold tracking-wider py-2 text-center" style={{ backgroundColor: "#082041", color: "white" }}>PREVIOUS DAY BALANCE (IN HAND)</div>
-                <div className="p-4 flex items-center">
-                  <div className="w-12 h-12 bg-[#082041] rounded-full flex items-center justify-center text-white mr-4 shrink-0" style={{ backgroundColor: "#082041", color: "white" }}>
-                    <Wallet size={24} />
-                  </div>
-                  <div>
-                    <div className="text-[#082041] text-xs font-bold" style={{ color: "#082041" }}>PKR</div>
-                    <div className="text-[#082041] text-xl font-black" style={{ color: "#082041" }}>{fmtPKR(openingBalance)}</div>
-                  </div>
-                </div>
+            {/* Top Stats Summary */}
+            <div className="flex items-center justify-between border-y-2 border-[#082041] py-3 text-[#082041]">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-bold uppercase tracking-wider opacity-80">Previous Balance</span>
+                <span className="text-sm font-black">PKR {fmtPKR(openingBalance)}</span>
               </div>
-
-              {/* Card 2 */}
-              <div className="border border-[#082041] rounded-lg overflow-hidden bg-white">
-                <div className="bg-[#082041] text-white text-[10px] font-bold tracking-wider py-2 text-center" style={{ backgroundColor: "#082041", color: "white" }}>RECEIVED FROM OWNER (TODAY)</div>
-                <div className="p-4 flex items-center">
-                  <div className="w-12 h-12 bg-[#082041] rounded-full flex items-center justify-center text-white mr-4 shrink-0" style={{ backgroundColor: "#082041", color: "white" }}>
-                    <Landmark size={24} />
-                  </div>
-                  <div>
-                    <div className="text-[#082041] text-xs font-bold" style={{ color: "#082041" }}>PKR</div>
-                    <div className="text-[#082041] text-xl font-black" style={{ color: "#082041" }}>{fmtPKR(periodFundsTotal)}</div>
-                  </div>
-                </div>
+              <div className="w-px h-8 bg-[#082041]/30"></div>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-bold uppercase tracking-wider opacity-80">Received Today</span>
+                <span className="text-sm font-black">PKR {fmtPKR(periodFundsTotal)}</span>
               </div>
-
-              {/* Card 3 */}
-              <div className="border border-[#082041] rounded-lg overflow-hidden bg-white">
-                <div className="bg-[#082041] text-white text-[10px] font-bold tracking-wider py-2 text-center" style={{ backgroundColor: "#082041", color: "white" }}>TODAY'S TOTAL EXPENSES</div>
-                <div className="p-4 flex items-center">
-                  <div className="w-12 h-12 bg-[#082041] rounded-full flex items-center justify-center text-white mr-4 shrink-0" style={{ backgroundColor: "#082041", color: "white" }}>
-                    <Building2 size={24} />
-                  </div>
-                  <div>
-                    <div className="text-[#082041] text-xs font-bold" style={{ color: "#082041" }}>PKR</div>
-                    <div className="text-[#082041] text-xl font-black" style={{ color: "#082041" }}>{fmtPKR(periodExpensesTotal)}</div>
-                  </div>
-                </div>
+              <div className="w-px h-8 bg-[#082041]/30"></div>
+              <div className="flex flex-col text-right">
+                <span className="text-[9px] font-bold uppercase tracking-wider opacity-80">Today's Expenses</span>
+                <span className="text-sm font-black">PKR {fmtPKR(periodExpensesTotal)}</span>
               </div>
             </div>
 
@@ -670,11 +643,11 @@ function OfficeExpenses() {
                 <tbody>
                   {periodFundsList.map((f: any, idx: number) => (
                     <tr key={f._id} className="border-b border-[#082041]/10">
-                      <td className="py-2 px-4 text-[10px] text-center">{idx + 1}</td>
-                      <td className="py-2 px-4 text-[10px]">{f.note || "Funds Received"}</td>
-                      <td className="py-2 px-4 text-[10px]">{f.from}</td>
-                      <td className="py-2 px-4 text-[10px]">{f.method}</td>
-                      <td className="py-2 px-4 text-[10px] text-right font-medium">{fmtPKR(f.amount)}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold text-center">{idx + 1}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold">{f.note || "Funds Received"}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold">{f.from}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold">{f.method}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold text-right">{fmtPKR(f.amount)}</td>
                     </tr>
                   ))}
                   {periodFundsList.length < 5 && Array.from({length: 5 - periodFundsList.length}).map((_, i) => (
@@ -707,12 +680,12 @@ function OfficeExpenses() {
                 <tbody>
                   {periodExpensesList.map((e: any, idx: number) => (
                     <tr key={e._id} className="border-b border-[#082041]/10">
-                      <td className="py-2 px-4 text-[10px] text-center">{idx + 1}</td>
-                      <td className="py-2 px-4 text-[10px]">{e.description}</td>
-                      <td className="py-2 px-4 text-[10px]">{e.category}</td>
-                      <td className="py-2 px-4 text-[10px]">{e.paidTo}</td>
-                      <td className="py-2 px-4 text-[10px]">{e.method}</td>
-                      <td className="py-2 px-4 text-[10px] text-right font-medium">{fmtPKR(e.amount)}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold text-center">{idx + 1}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold">{e.description}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold">{e.category}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold">{e.paidTo}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold">{e.method}</td>
+                      <td className="py-2 px-4 text-[10px] font-bold text-right">{fmtPKR(e.amount)}</td>
                     </tr>
                   ))}
                   {periodExpensesList.length < 5 && Array.from({length: 5 - periodExpensesList.length}).map((_, i) => (
@@ -745,15 +718,7 @@ function OfficeExpenses() {
               </div>
             </div>
 
-            {/* Signatures */}
-            <div className="border border-[#082041] rounded-lg h-24 flex mt-6">
-              <div className="flex-1 border-r border-[#082041] p-4 flex flex-col justify-end items-center">
-                <div className="text-[10px] font-bold text-[#082041]" style={{ color: "#082041" }}>OWNER SIGNATURE</div>
-              </div>
-              <div className="flex-1 p-4 flex flex-col justify-end items-center">
-                <div className="text-[10px] font-bold text-[#082041]" style={{ color: "#082041" }}>COMPANY STAMP</div>
-              </div>
-            </div>
+
 
             {/* Footer text */}
             <div className="text-center pt-4 space-y-1">
