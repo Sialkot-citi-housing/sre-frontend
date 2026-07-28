@@ -238,15 +238,15 @@ export function AppShell({
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground print:bg-white">
       {/* Sidebar — desktop */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-card lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-card lg:flex print:hidden">
         <SidebarContents />
       </aside>
 
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 print:pl-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 border-b border-border bg-card">
+        <header className="sticky top-0 z-30 border-b border-border bg-card print:hidden">
           <div className="flex h-16 items-center gap-3 px-4 sm:h-20 sm:gap-6 sm:px-6">
             {/* Mobile menu */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -319,7 +319,7 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+        <main className="px-4 py-6 sm:px-6 sm:py-8 print:p-0">{children}</main>
       </div>
     </div>
   );
