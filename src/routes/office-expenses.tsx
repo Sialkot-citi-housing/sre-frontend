@@ -462,13 +462,14 @@ function OfficeExpenses() {
                 </TableBody>
               </Table>
             </div>
-            {periodFundsList.length > 0 && (
-              <div className="flex justify-end border-t border-border bg-secondary/40 px-6 py-3 text-sm">
-                <span className="font-semibold text-foreground">
-                  Total Received: <span className="text-emerald-700">PKR {fmtPKR(periodFundsTotal)}</span>
-                </span>
-              </div>
-            )}
+            <div className="flex justify-between border-t border-border bg-secondary/40 px-6 py-3 text-sm">
+              <span className="font-medium text-muted-foreground">
+                Previous Balance: PKR {fmtPKR(openingBalance)}
+              </span>
+              <span className="font-semibold text-foreground">
+                Total (Received + Previous): <span className="text-emerald-700">PKR {fmtPKR(periodFundsTotal + openingBalance)}</span>
+              </span>
+            </div>
           </div>
 
           {/* Expenses table */}
