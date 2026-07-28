@@ -15,6 +15,10 @@ import {
   Printer,
   ChevronLeft,
   ChevronRight,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -290,7 +294,8 @@ function OfficeExpenses() {
   const queryClient = useQueryClient();
   const [editOfficeExpenseId, setEditOfficeExpenseId] = useState<string | null>(null);
   
-  const [selectedDate, setSelectedDate] = useState<string>(today());
+  const [startDate, setStartDate] = useState<string>(today());
+  const [endDate, setEndDate] = useState<string>(today());
 
   const handleEdit = (id: string) => {
     if (id.startsWith('off-')) setEditOfficeExpenseId(id.slice(4));
@@ -308,36 +313,36 @@ function OfficeExpenses() {
 
   const isLoading = isLoadingFunds || isLoadingOffice;
 
-  const { openingBalance, todayFundsList, todayExpensesList, todayFundsTotal, todayExpensesTotal, closingBalance } = useMemo(() => {
+  const { openingBalance, periodFundsList, periodExpensesList, periodFundsTotal, periodExpensesTotal, closingBalance } = useMemo(() => {
     let openingFunds = 0;
     let openingExpenses = 0;
 
-    const todayFundsList: any[] = [];
-    const todayExpensesList: any[] = [];
-    let todayFundsTotal = 0;
-    let todayExpensesTotal = 0;
+    const periodFundsList: any[] = [];
+    const periodExpensesList: any[] = [];
+    let periodFundsTotal = 0;
+    let periodExpensesTotal = 0;
 
     funds.forEach((f: any) => {
-      if (f.date < selectedDate) openingFunds += f.amount;
-      else if (f.date === selectedDate) {
-        todayFundsList.push(f);
-        todayFundsTotal += f.amount;
+      if (f.date < startDate) openingFunds += f.amount;
+      else if (f.date >= startDate && f.date <= endDate) {
+        periodFundsList.push(f);
+        periodFundsTotal += f.amount;
       }
     });
 
     officeExpenses.forEach((e: any) => {
-      if (e.date < selectedDate) openingExpenses += e.amount;
-      else if (e.date === selectedDate) {
-        todayExpensesList.push(e);
-        todayExpensesTotal += e.amount;
+      if (e.date < startDate) openingExpenses += e.amount;
+      else if (e.date >= startDate && e.date <= endDate) {
+        periodExpensesList.push(e);
+        periodExpensesTotal += e.amount;
       }
     });
 
     const openingBalance = openingFunds - openingExpenses;
-    const closingBalance = openingBalance + todayFundsTotal - todayExpensesTotal;
+    const closingBalance = openingBalance + periodFundsTotal - periodExpensesTotal;
 
-    return { openingBalance, todayFundsList, todayExpensesList, todayFundsTotal, todayExpensesTotal, closingBalance };
-  }, [funds, officeExpenses, selectedDate]);
+    return { openingBalance, periodFundsList, periodExpensesList, periodFundsTotal, periodExpensesTotal, closingBalance };
+  }, [funds, officeExpenses, startDate, endDate]);
 
   if (isLoading) {
     return (
@@ -353,12 +358,6 @@ function OfficeExpenses() {
     window.print();
   };
 
-  const adjustDate = (days: number) => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + days);
-    setSelectedDate(d.toISOString().split('T')[0]);
-  };
-
   return (
     <AppShell
       title="Daily Cash Book"
@@ -368,11 +367,16 @@ function OfficeExpenses() {
         
         {/* Top Controls (Hidden in Print) */}
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 print:hidden">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => adjustDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-            <Input type="date" className="w-auto font-medium" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
-            <Button variant="outline" size="icon" onClick={() => adjustDate(1)}><ChevronRight className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelectedDate(today())}>Today</Button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">From</span>
+              <Input type="date" className="w-auto font-medium" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">To</span>
+              <Input type="date" className="w-auto font-medium" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => { setStartDate(today()); setEndDate(today()); }}>Today</Button>
           </div>
           <div className="flex flex-wrap gap-2">
             <AddFundDialog />
@@ -384,18 +388,59 @@ function OfficeExpenses() {
         </div>
 
         {/* Print Header (Visible only in Print) */}
-        <div className="hidden print:block mb-6 border-b-2 border-black pb-4 text-center">
-          <h1 className="text-2xl font-bold uppercase tracking-widest text-black">Daily Cash Book</h1>
-          <p className="mt-1 text-sm font-medium text-gray-600">Date: {new Date(selectedDate).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <div className="hidden print:block mb-8 relative w-full h-[140px] bg-white text-black overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <div className="flex relative h-full">
+            <div className="flex items-center pt-8 pl-12 pr-4 w-[60%]">
+              {/* SVG Logo */}
+              <div className="mr-6 flex flex-col items-center justify-center">
+                <svg width="120" height="80" viewBox="0 0 120 80">
+                  <path d="M 10 50 Q 60 10 110 50" fill="none" stroke="#082041" strokeWidth="6" />
+                  <path d="M 40 40 L 60 15 L 80 40 Z" fill="#D51017" />
+                  <rect x="52" y="25" width="16" height="15" fill="white" />
+                  <rect x="56" y="29" width="3" height="3" fill="#D51017" />
+                  <rect x="61" y="29" width="3" height="3" fill="#D51017" />
+                  <rect x="56" y="34" width="3" height="3" fill="#D51017" />
+                  <rect x="61" y="34" width="3" height="3" fill="#D51017" />
+                  <text x="60" y="65" fontFamily="serif" fontSize="18" fontWeight="bold" fill="#D51017" textAnchor="middle">SIALKOT</text>
+                  <text x="60" y="75" fontFamily="serif" fontSize="10" fill="#082041" textAnchor="middle">REAL ESTATE</text>
+                </svg>
+              </div>
+              <div className="border-l-2 border-gray-300 pl-6 space-y-1">
+                <h1 className="text-xl font-bold tracking-widest text-[#082041]">SIALKOT REAL ESTATE</h1>
+                <p className="text-[10px] text-[#082041] mb-2 font-medium">Building Trust, Delivering Excellence</p>
+                <div className="text-[9px] text-gray-700 flex items-center gap-2 mt-2"><MapPin size={10} color="#082041"/> Citi Housing, Sialkot, Punjab, Pakistan</div>
+                <div className="text-[9px] text-gray-700 flex items-center gap-2 mt-0.5"><Phone size={10} color="#082041"/> +92 300 1234567</div>
+                <div className="text-[9px] text-gray-700 flex items-center gap-2 mt-0.5"><Mail size={10} color="#082041"/> info@sialkotrealestate.com</div>
+                <div className="text-[9px] text-gray-700 flex items-center gap-2 mt-0.5"><Globe size={10} color="#082041"/> www.sialkotrealestate.com</div>
+              </div>
+            </div>
+            
+            <div 
+              className="absolute right-0 top-0 h-full w-[45%]"
+              style={{
+                backgroundColor: "#082041",
+                clipPath: "polygon(20% 0, 100% 0, 100% 100%, 0 100%)",
+                borderBottom: `6px solid #D51017`
+              }}
+            >
+              <div className="text-white pt-10 pl-24 space-y-2">
+                <h1 className="text-3xl font-extrabold tracking-widest mb-4">CASH BOOK</h1>
+                <div className="pt-2 text-xs text-gray-200 space-y-1">
+                  <p>From: {new Date(startDate).toLocaleDateString("en-GB", {day:'numeric', month:'long', year:'numeric'})}</p>
+                  <p>To: {new Date(endDate).toLocaleDateString("en-GB", {day:'numeric', month:'long', year:'numeric'})}</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Daily Summary */}
         <div className="rounded-xl border border-border bg-card p-6 print:border-black print:rounded-none">
-          <h2 className="text-lg font-semibold text-foreground print:text-black">Balance Overview — {selectedDate}</h2>
+          <h2 className="text-lg font-semibold text-foreground print:text-black">Balance Overview</h2>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-4">
             <StatTile icon={<Wallet className="h-4 w-4" />} label="Opening Balance" value={`PKR ${fmtPKR(openingBalance)}`} />
-            <StatTile icon={<ArrowDownCircle className="h-4 w-4" />} label="Received Today" value={`PKR ${fmtPKR(todayFundsTotal)}`} tone="positive" />
-            <StatTile icon={<ArrowUpCircle className="h-4 w-4" />} label="Paid Today" value={`PKR ${fmtPKR(todayExpensesTotal)}`} tone="negative" />
+            <StatTile icon={<ArrowDownCircle className="h-4 w-4" />} label="Received Period" value={`PKR ${fmtPKR(periodFundsTotal)}`} tone="positive" />
+            <StatTile icon={<ArrowUpCircle className="h-4 w-4" />} label="Paid Period" value={`PKR ${fmtPKR(periodExpensesTotal)}`} tone="negative" />
             <StatTile icon={<Landmark className="h-4 w-4" />} label="Cash in Hand" value={`PKR ${fmtPKR(closingBalance)}`} tone="balance" />
           </div>
         </div>
@@ -403,12 +448,13 @@ function OfficeExpenses() {
         {/* Funds table */}
         <div className="overflow-hidden rounded-xl border border-border bg-card print:border-black print:rounded-none">
           <div className="border-b border-border px-6 py-4 print:border-black print:px-2 print:py-2">
-            <h3 className="text-base font-semibold text-emerald-700 print:text-black">Cash Received Today</h3>
+            <h3 className="text-base font-semibold text-emerald-700 print:text-black">Cash Received</h3>
           </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-secondary/60 hover:bg-secondary/60 print:bg-gray-100">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Date</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">From</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Method</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Note</TableHead>
@@ -416,28 +462,29 @@ function OfficeExpenses() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {todayFundsList.map((f: any) => (
+                {periodFundsList.map((f: any) => (
                   <TableRow key={f._id} className="border-border print:border-gray-300">
+                    <TableCell className="text-sm font-medium text-foreground print:text-black">{f.date}</TableCell>
                     <TableCell className="text-sm font-medium text-foreground print:text-black">{f.from}</TableCell>
                     <TableCell className="text-sm text-muted-foreground print:text-black">{f.method}</TableCell>
                     <TableCell className="text-sm text-muted-foreground print:text-black">{f.note || "—"}</TableCell>
                     <TableCell className="text-right tabular-nums font-semibold text-emerald-700 print:text-black">{fmtPKR(f.amount)}</TableCell>
                   </TableRow>
                 ))}
-                {todayFundsList.length === 0 && (
+                {periodFundsList.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="py-6 text-center text-sm text-muted-foreground print:text-black">
-                      No funds received today.
+                    <TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground print:text-black">
+                      No funds received in this period.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-          {todayFundsList.length > 0 && (
+          {periodFundsList.length > 0 && (
             <div className="flex justify-end border-t border-border bg-secondary/40 px-6 py-3 text-sm print:border-black print:bg-white print:px-2 print:py-2">
               <span className="font-semibold text-foreground print:text-black">
-                Total Received: <span className="text-emerald-700 print:text-black">PKR {fmtPKR(todayFundsTotal)}</span>
+                Total Received: <span className="text-emerald-700 print:text-black">PKR {fmtPKR(periodFundsTotal)}</span>
               </span>
             </div>
           )}
@@ -446,12 +493,13 @@ function OfficeExpenses() {
         {/* Expenses table */}
         <div className="overflow-hidden rounded-xl border border-border bg-card print:border-black print:rounded-none">
           <div className="border-b border-border px-6 py-4 print:border-black print:px-2 print:py-2">
-            <h3 className="text-base font-semibold text-[color:var(--sre-red)] print:text-black">Cash Paid Today</h3>
+            <h3 className="text-base font-semibold text-[color:var(--sre-red)] print:text-black">Cash Paid</h3>
           </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-secondary/60 hover:bg-secondary/60 print:bg-gray-100">
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Date</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Category</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Paid To</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground print:text-black">Description</TableHead>
@@ -461,14 +509,16 @@ function OfficeExpenses() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {todayExpensesList.map((e) => (
+                {periodExpensesList.map((e) => (
                   <TableRow key={e._id} className="border-border transition-colors hover:bg-accent/40 print:border-gray-300">
+                    <TableCell className="text-sm font-medium text-foreground print:text-black">{e.date}</TableCell>
                     <TableCell className="text-sm font-medium text-foreground print:text-black">{e.category}</TableCell>
                     <TableCell className="text-sm text-foreground print:text-black">{e.paidTo}</TableCell>
                     <TableCell className="text-sm text-muted-foreground print:text-black">{e.description}</TableCell>
                     <TableCell className="text-xs text-muted-foreground print:text-black">{e.method}</TableCell>
                     <TableCell className="text-right tabular-nums font-semibold text-foreground print:text-black">{fmtPKR(e.amount)}</TableCell>
                     <TableCell className="text-right print:hidden">
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-secondary/80">
@@ -489,20 +539,20 @@ function OfficeExpenses() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {todayExpensesList.length === 0 && (
+                {periodExpensesList.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground print:text-black">
-                      No expenses recorded today.
+                    <TableCell colSpan={7} className="py-6 text-center text-sm text-muted-foreground print:text-black">
+                      No expenses recorded in this period.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-          {todayExpensesList.length > 0 && (
+          {periodExpensesList.length > 0 && (
             <div className="flex justify-end border-t border-border bg-secondary/40 px-6 py-3 text-sm print:border-black print:bg-white print:px-2 print:py-2">
               <span className="font-semibold text-foreground print:text-black">
-                Total Paid: <span className="text-[color:var(--sre-red)] print:text-black">PKR {fmtPKR(todayExpensesTotal)}</span>
+                Total Paid: <span className="text-[color:var(--sre-red)] print:text-black">PKR {fmtPKR(periodExpensesTotal)}</span>
               </span>
             </div>
           )}
