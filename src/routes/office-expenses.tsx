@@ -436,7 +436,7 @@ function OfficeExpenses() {
                 </p>
               </div>
             </div>
-            <AddExpenseDialog projects={projects} contractors={contractors} />
+            <AddExpenseDialog />
           </div>
           <div className="overflow-x-auto">
             <Table>
