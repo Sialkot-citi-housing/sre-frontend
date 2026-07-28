@@ -16,45 +16,23 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
   const printRef = useRef<HTMLDivElement>(null);
   
   const [loading, setLoading] = useState(false);
-  const [projectId, setProjectId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
-  const [customerAddress, setCustomerAddress] = useState("");
-  const [contractNo, setContractNo] = useState("");
-  const [projectManager, setProjectManager] = useState("");
-  const [discount, setDiscount] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(18);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [dueDate, setDueDate] = useState("");
+  const [totalPropertyAmount, setTotalPropertyAmount] = useState<number>(0);
   
   const [items, setItems] = useState<InvoiceItem[]>([
-    { description: "", unit: "Lump Sum", quantity: 1, rate: 0, amount: 0 }
+    { description: "", date: new Date().toISOString().split("T")[0], amount: 0 }
   ]);
   
   const [generatedInvoiceNo, setGeneratedInvoiceNo] = useState<string>("");
 
-  const { data: projects = [] } = useQuery({
-    queryKey: ["projects"],
-    queryFn: api.getProjects,
-  });
-
-  const selectedProject = projects.find((p: any) => p._id === projectId || p.id === projectId);
-
-  // Auto-calculate amounts
-  useEffect(() => {
-    setItems(currentItems => 
-      currentItems.map(item => ({
-        ...item,
-        amount: item.quantity * item.rate
-      }))
-    );
-  }, [JSON.stringify(items.map(i => ({ q: i.quantity, r: i.rate })))]);
-
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+  const totalPaid = items.reduce((sum, item) => sum + item.amount, 0);
+  const remainingBalance = totalPropertyAmount - totalPaid;
 
   const handleAddItem = () => {
-    setItems([...items, { description: "", unit: "Lump Sum", quantity: 1, rate: 0, amount: 0 }]);
+    setItems([...items, { description: "", date: new Date().toISOString().split("T")[0], amount: 0 }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -71,8 +49,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!projectId || items.length === 0 || !customerName || !customerPhone) {
-      alert("Please fill in all required fields and add at least one item.");
+    if (items.length === 0 || !customerName || !customerPhone || totalPropertyAmount <= 0) {
+      alert("Please fill in all required fields, total property amount, and add at least one payment.");
       return;
     }
 
@@ -82,18 +60,11 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
       // 1. Create invoice in DB to get Invoice Number
       const invoiceData = {
         date,
-        dueDate,
         customerName,
         customerPhone,
         customerEmail,
-        customerAddress,
-        contractNo,
-        projectManager,
-        project: projectId,
+        totalPropertyAmount,
         items,
-        totalAmount: totalAmount - discount + (totalAmount - discount) * (taxRate / 100),
-        discount,
-        taxRate,
         status: "Unpaid"
       };
       
@@ -130,13 +101,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
           setCustomerName("");
           setCustomerPhone("");
           setCustomerEmail("");
-          setCustomerAddress("");
-          setContractNo("");
-          setProjectManager("");
-          setDiscount(0);
-          setTaxRate(18);
-          setProjectId("");
-          setItems([{ description: "", unit: "Lump Sum", quantity: 1, rate: 0, amount: 0 }]);
+          setTotalPropertyAmount(0);
+          setItems([{ description: "", date: new Date().toISOString().split("T")[0], amount: 0 }]);
           setGeneratedInvoiceNo("");
         } catch (err) {
           console.error("PDF/Upload Error:", err);
@@ -156,20 +122,11 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
   const invoiceData: InvoiceData = {
     invoiceNumber: generatedInvoiceNo,
     date,
-    dueDate,
     customerName,
     customerPhone,
     customerEmail,
-    customerAddress,
-    projectInfo: selectedProject?.plot || "Modern Villa Construction",
-    projectLocation: "Citi Housing, Sialkot",
-    plotNo: selectedProject?.plot || "102, Block DD",
-    contractNo: contractNo || "SRE-CON-2025-015",
-    projectManager: projectManager || "Engr. Usman Ali",
+    totalPropertyAmount,
     items,
-    discount,
-    taxRate,
-    totalAmount: totalAmount - discount + (totalAmount - discount) * (taxRate / 100)
   };
 
   return (
@@ -196,46 +153,21 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
                 <Input value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} placeholder="john@example.com" />
               </div>
               <div className="space-y-2">
-                <Label>Address</Label>
-                <Input value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="House No. 45, Street No. 12..." />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Project / Plot</Label>
-                <Select value={projectId} onValueChange={setProjectId}>
-                  <SelectTrigger><SelectValue placeholder="Select Project" /></SelectTrigger>
-                  <SelectContent>
-                    {projects.map((p: any) => (
-                      <SelectItem key={p._id || p.id} value={p._id || p.id}>{p.plot}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Contract No.</Label>
-                <Input value={contractNo} onChange={e => setContractNo(e.target.value)} placeholder="SRE-CON-..." />
-              </div>
-              <div className="space-y-2">
-                <Label>Project Manager</Label>
-                <Input value={projectManager} onChange={e => setProjectManager(e.target.value)} placeholder="Engr. Usman Ali" />
-              </div>
-              <div className="space-y-2">
                 <Label>Invoice Date</Label>
                 <Input type="date" required value={date} onChange={e => setDate(e.target.value)} />
               </div>
-              <div className="space-y-2">
-                <Label>Due Date</Label>
-                <Input type="date" required value={dueDate} onChange={e => setDueDate(e.target.value)} />
-              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Total Property / Plot Amount (PKR)</Label>
+              <Input type="number" required value={totalPropertyAmount || ""} onChange={e => setTotalPropertyAmount(Number(e.target.value))} placeholder="e.g. 5000000" className="text-lg font-semibold" />
             </div>
 
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <Label>Invoice Items</Label>
+                <Label>Payments / Installments Received</Label>
                 <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="gap-2">
-                  <Plus className="h-4 w-4" /> Add Item
+                  <Plus className="h-4 w-4" /> Add Payment
                 </Button>
               </div>
               
@@ -243,27 +175,13 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
                 {items.map((item, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 bg-muted/10">
                     <div className="flex-1 space-y-1">
-                      <Input placeholder="Description (e.g. Grey Structure Payment)" value={item.description} onChange={e => updateItem(i, "description", e.target.value)} required />
+                      <Input placeholder="Description (e.g. Down Payment)" value={item.description} onChange={e => updateItem(i, "description", e.target.value)} required />
                     </div>
-                    <div className="w-28 space-y-1">
-                      <Select value={item.unit} onValueChange={(val) => updateItem(i, "unit", val)}>
-                        <SelectTrigger><SelectValue placeholder="Unit" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Lump Sum">Lump Sum</SelectItem>
-                          <SelectItem value="Per Sq. Ft.">Per Sq. Ft.</SelectItem>
-                          <SelectItem value="Per Cft.">Per Cft.</SelectItem>
-                          <SelectItem value="Per Kg">Per Kg</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="w-40 space-y-1">
+                      <Input type="date" value={item.date} onChange={e => updateItem(i, "date", e.target.value)} required />
                     </div>
-                    <div className="w-24 space-y-1">
-                      <Input type="number" min={1} placeholder="Qty" value={item.quantity} onChange={e => updateItem(i, "quantity", Number(e.target.value))} required />
-                    </div>
-                    <div className="w-28 space-y-1">
-                      <Input type="number" placeholder="Rate" value={item.rate} onChange={e => updateItem(i, "rate", Number(e.target.value))} required />
-                    </div>
-                    <div className="w-32 text-right font-medium text-sm">
-                      PKR {item.amount.toLocaleString()}
+                    <div className="w-40 space-y-1">
+                      <Input type="number" placeholder="Amount (PKR)" value={item.amount || ""} onChange={e => updateItem(i, "amount", Number(e.target.value))} required />
                     </div>
                     <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(i)} className="text-red-500 shrink-0 h-9 w-9">
                       <Trash2 className="h-4 w-4" />
@@ -271,21 +189,12 @@ export function CreateInvoiceDialog({ open, onOpenChange }: { open: boolean; onO
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                <div className="space-y-2 col-start-2">
-                  <Label>Discount (PKR)</Label>
-                  <Input type="number" min={0} value={discount} onChange={e => setDiscount(Number(e.target.value))} />
+              <div className="flex flex-col items-end text-right font-semibold text-sm pt-4 space-y-1">
+                <div>Total Property Amount: PKR {totalPropertyAmount.toLocaleString()}</div>
+                <div className="text-emerald-600">Total Received: PKR {totalPaid.toLocaleString()}</div>
+                <div className="text-xl font-bold text-[color:var(--sre-red)] pt-2 border-t mt-2 w-64">
+                  Balance: PKR {remainingBalance.toLocaleString()}
                 </div>
-                <div className="space-y-2">
-                  <Label>Tax Rate (%)</Label>
-                  <Input type="number" min={0} value={taxRate} onChange={e => setTaxRate(Number(e.target.value))} />
-                </div>
-              </div>
-              <div className="text-right font-semibold text-lg pt-2">
-                Subtotal: PKR {totalAmount.toLocaleString()} <br/>
-                <span className="text-xl font-bold text-[color:var(--sre-blue)]">
-                  Total: PKR {(totalAmount - discount + (totalAmount - discount) * (taxRate / 100)).toLocaleString()}
-                </span>
               </div>
             </div>
 

@@ -35,7 +35,7 @@ function InvoicesPage() {
       alert("This invoice does not have a PDF generated yet.");
       return;
     }
-    const message = `Hello ${invoice.customerName},\n\nHere is your invoice ${invoice.invoiceNumber} for ${invoice.project?.plot || "your project"}.\n\nTotal Amount: PKR ${fmtPKR(invoice.totalAmount)}\nDue Date: ${new Date(invoice.dueDate).toLocaleDateString()}\n\nPlease find the PDF document attached.\n\nThank you for choosing Sialkot Real Estate!`;
+    const message = `Hello ${invoice.customerName},\n\nHere is your payment ledger ${invoice.invoiceNumber}.\n\nTotal Property Value: PKR ${fmtPKR(invoice.totalPropertyAmount)}\nTotal Received: PKR ${fmtPKR(invoice.items?.reduce((s:any,i:any)=>s+i.amount,0) || 0)}\n\nPlease find the PDF document attached.\n\nThank you for choosing Sialkot Real Estate!`;
     const encoded = encodeURIComponent(message);
     let phone = invoice.customerPhone.replace(/\D/g, "");
     if (!phone.startsWith("92") && phone.startsWith("0")) {
@@ -76,9 +76,9 @@ function InvoicesPage() {
                 <th className="px-4 py-3 font-medium">Invoice #</th>
                 <th className="px-4 py-3 font-medium">Date</th>
                 <th className="px-4 py-3 font-medium">Customer</th>
-                <th className="px-4 py-3 font-medium">Project (Plot)</th>
-                <th className="px-4 py-3 font-medium text-right">Total Amount</th>
-                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium text-right">Property Value</th>
+                <th className="px-4 py-3 font-medium text-right">Received</th>
+                <th className="px-4 py-3 font-medium text-right">Balance</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -100,14 +100,14 @@ function InvoicesPage() {
                       <div>{inv.customerName}</div>
                       <div className="text-xs text-muted-foreground">{inv.customerPhone}</div>
                     </td>
-                    <td className="px-4 py-3">{inv.project?.plot || "N/A"}</td>
                     <td className="px-4 py-3 text-right font-medium">
-                      PKR {fmtPKR(inv.totalAmount)}
+                      PKR {fmtPKR(inv.totalPropertyAmount)}
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={inv.status === "Paid" ? "default" : "destructive"} className={inv.status === "Paid" ? "bg-emerald-500 hover:bg-emerald-600" : ""}>
-                        {inv.status}
-                      </Badge>
+                    <td className="px-4 py-3 text-right text-emerald-600 font-medium">
+                      PKR {fmtPKR(inv.items?.reduce((s:any,i:any)=>s+i.amount,0) || 0)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-red-600 font-medium">
+                      PKR {fmtPKR(inv.totalPropertyAmount - (inv.items?.reduce((s:any,i:any)=>s+i.amount,0) || 0))}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <DropdownMenu>

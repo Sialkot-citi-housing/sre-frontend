@@ -4,29 +4,18 @@ import { Phone, Mail, Globe, MapPin, CheckCircle2 } from "lucide-react";
 
 export type InvoiceItem = {
   description: string;
-  unit: string;
-  quantity: number;
-  rate: number;
+  date: string;
   amount: number;
 };
 
 export type InvoiceData = {
   invoiceNumber?: string;
   date: string;
-  dueDate: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
-  customerAddress?: string;
-  projectInfo?: string;
-  projectLocation?: string;
-  plotNo?: string;
-  contractNo?: string;
-  projectManager?: string;
   items: InvoiceItem[];
-  discount?: number;
-  taxRate?: number;
-  totalAmount: number;
+  totalPropertyAmount: number;
 };
 
 function numberToWords(num: number): string {
@@ -116,35 +105,21 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
             <h1 className="text-4xl font-extrabold tracking-widest mb-4">INVOICE</h1>
             <p className="text-base font-medium">{data.invoiceNumber || "INV-DRAFT"}</p>
             <div className="pt-2 text-xs text-gray-200 space-y-1">
-              <p>Date: {new Date(data.date).toLocaleDateString("en-GB", {day:'numeric', month:'long', year:'numeric'})}</p>
-              <p>Due Date: {new Date(data.dueDate).toLocaleDateString("en-GB", {day:'numeric', month:'long', year:'numeric'})}</p>
+              <p>Issue Date: {new Date(data.date).toLocaleDateString("en-GB", {day:'numeric', month:'long', year:'numeric'})}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* THREE COLUMNS SECTION */}
+      {/* TWO COLUMNS SECTION */}
       <div className="px-12 mt-10 flex gap-4">
         {/* Bill To */}
         <div className="flex-1">
-          <div className="bg-[#082041] text-white text-[9px] font-bold px-3 py-1 mb-3 rounded-sm border-b-2 border-[#D51017]">BILL TO</div>
+          <div className="bg-[#082041] text-white text-[9px] font-bold px-3 py-1 mb-3 rounded-sm border-b-2 border-[#D51017]">CUSTOMER DETAILS</div>
           <h3 className="font-bold text-[#082041] text-[11px] mb-2">{data.customerName || "Customer Name"}</h3>
           <div className="text-[9px] text-gray-700 space-y-1 leading-relaxed pr-4">
-            <p className="whitespace-pre-wrap">{data.customerAddress || "Address not provided"}</p>
             <p className="pt-1 flex items-center gap-1.5"><Phone size={10} className="text-[#082041]"/> {data.customerPhone}</p>
             {data.customerEmail && <p className="flex items-center gap-1.5"><Mail size={10} className="text-[#082041]"/> {data.customerEmail}</p>}
-          </div>
-        </div>
-
-        {/* Project Details */}
-        <div className="flex-1">
-          <div className="bg-[#082041] text-white text-[9px] font-bold px-3 py-1 mb-3 rounded-sm border-b-2 border-[#D51017]">PROJECT DETAILS</div>
-          <div className="text-[9px] text-gray-700 grid grid-cols-[85px_1fr] gap-y-1.5">
-            <span className="text-gray-500">Project Name</span><span className="font-medium text-gray-800">: {data.projectInfo || "N/A"}</span>
-            <span className="text-gray-500">Location</span><span className="font-medium text-gray-800">: {data.projectLocation || "Sialkot"}</span>
-            <span className="text-gray-500">Plot No.</span><span className="font-medium text-gray-800">: {data.plotNo || "N/A"}</span>
-            <span className="text-gray-500">Contract No.</span><span className="font-medium text-gray-800">: {data.contractNo || "N/A"}</span>
-            <span className="text-gray-500">Project Manager</span><span className="font-medium text-gray-800">: {data.projectManager || "N/A"}</span>
           </div>
         </div>
 
@@ -168,28 +143,24 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
         </div>
       </div>
 
-      {/* ITEMS TABLE */}
-      <div className="px-12 mt-8 min-h-[350px]">
-        <table className="w-full text-[10px] border-collapse">
+      {/* PAYMENTS TABLE SECTION */}
+      <div className="px-12 mt-10">
+        <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-[#082041] text-white uppercase text-[8px] tracking-wider">
-              <th className="py-2.5 px-3 text-center w-10">#</th>
-              <th className="py-2.5 px-3 text-left">DESCRIPTION</th>
-              <th className="py-2.5 px-3 text-center">UNIT</th>
-              <th className="py-2.5 px-3 text-center">QTY</th>
-              <th className="py-2.5 px-3 text-right">UNIT PRICE (PKR)</th>
-              <th className="py-2.5 px-3 text-right">AMOUNT (PKR)</th>
+            <tr className="bg-[#082041] text-white text-[9px]">
+              <th className="py-2.5 px-4 font-semibold uppercase tracking-wider rounded-tl-md">#</th>
+              <th className="py-2.5 px-4 font-semibold uppercase tracking-wider">Payment Description</th>
+              <th className="py-2.5 px-4 font-semibold uppercase tracking-wider">Date</th>
+              <th className="py-2.5 px-4 font-semibold uppercase tracking-wider text-right rounded-tr-md">Amount Paid (PKR)</th>
             </tr>
           </thead>
           <tbody>
-            {data.items.map((item, i) => (
-              <tr key={i} className="border-b border-gray-100">
-                <td className="py-3.5 px-3 text-center text-gray-500">{i + 1}</td>
-                <td className="py-3.5 px-3 font-medium text-[#082041]">{item.description}</td>
-                <td className="py-3.5 px-3 text-center text-gray-600">{item.unit || "Lump Sum"}</td>
-                <td className="py-3.5 px-3 text-center text-gray-600 tabular-nums">{item.quantity}</td>
-                <td className="py-3.5 px-3 text-right text-gray-600 tabular-nums">{fmtPKR(item.rate)}</td>
-                <td className="py-3.5 px-3 text-right text-[#082041] tabular-nums font-semibold">{fmtPKR(item.amount)}</td>
+            {data.items.map((item, idx) => (
+              <tr key={idx} className="border-b border-gray-200 text-[10px]">
+                <td className="py-3 px-4 font-medium text-gray-600">{idx + 1}</td>
+                <td className="py-3 px-4 text-[#082041] font-medium">{item.description}</td>
+                <td className="py-3 px-4 text-gray-700">{item.date}</td>
+                <td className="py-3 px-4 text-right font-semibold text-[#082041] tabular-nums">{fmtPKR(item.amount)}</td>
               </tr>
             ))}
           </tbody>
@@ -213,8 +184,8 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
           <h4 className="font-bold text-[#082041] text-[10px] uppercase mb-3 border-b border-gray-200 pb-1 w-max">Terms & Conditions</h4>
           <ul className="text-[9px] text-[#082041] font-medium space-y-2">
             <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-[#082041]/60 mt-0.5 shrink-0"/> Please ensure payment within the due date.</li>
-            <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-[#082041]/60 mt-0.5 shrink-0"/> Late payments may incur additional charges.</li>
-            <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-[#082041]/60 mt-0.5 shrink-0"/> All materials used are of premium quality.</li>
+            <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-[#082041]/60 mt-0.5 shrink-0"/> All payments are final and non-refundable.</li>
+            <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-[#082041]/60 mt-0.5 shrink-0"/> Installment schedules must be strictly followed.</li>
             <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-[#082041]/60 mt-0.5 shrink-0"/> This is a computer generated invoice; no signature required.</li>
           </ul>
         </div>
@@ -222,20 +193,16 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
         {/* Totals Box */}
         <div className="w-[45%] text-[10px] relative z-10">
           <div className="flex justify-between py-2 border-b border-gray-200 px-4">
-            <span className="font-bold text-[#082041] tracking-wide">SUBTOTAL</span>
-            <span className="tabular-nums text-gray-700">{fmtPKR(data.items.reduce((s,i)=>s+i.amount,0))}</span>
+            <span className="font-bold text-[#082041] tracking-wide">TOTAL PROPERTY VALUE</span>
+            <span className="tabular-nums text-gray-700">{fmtPKR(data.totalPropertyAmount || 0)}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-gray-200 px-4">
-            <span className="font-bold text-[#082041] tracking-wide">DISCOUNT</span>
-            <span className="tabular-nums text-gray-700">(-) {fmtPKR(data.discount || 0)}</span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-gray-200 px-4">
-            <span className="font-bold text-[#082041] tracking-wide">TAX ({data.taxRate || 0}% GST)</span>
-            <span className="tabular-nums text-gray-700">{fmtPKR( (data.items.reduce((s,i)=>s+i.amount,0) - (data.discount||0)) * ((data.taxRate||0)/100) )}</span>
+            <span className="font-bold text-emerald-700 tracking-wide">TOTAL RECEIVED</span>
+            <span className="tabular-nums font-medium text-emerald-700">{fmtPKR(data.items.reduce((s,i)=>s+i.amount,0))}</span>
           </div>
           <div className="bg-[#082041] text-white p-4 pt-3 pb-3 mt-4 rounded-sm shadow-md flex justify-between items-center">
-            <div className="text-[9px] uppercase font-bold text-gray-300 tracking-wider">TOTAL AMOUNT</div>
-            <div className="text-xl font-bold tabular-nums tracking-wide">PKR {fmtPKR(data.totalAmount)}</div>
+            <div className="text-[9px] uppercase font-bold text-gray-300 tracking-wider">REMAINING BALANCE</div>
+            <div className="text-xl font-bold tabular-nums tracking-wide">PKR {fmtPKR((data.totalPropertyAmount || 0) - data.items.reduce((s,i)=>s+i.amount,0))}</div>
           </div>
         </div>
       </div>
@@ -250,7 +217,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
           <div>
             <div className="text-[8px] uppercase tracking-wider text-gray-300 mb-0.5">Amount in Words</div>
             <div className="text-[11px] font-medium leading-tight max-w-[320px]">
-              {numberToWords(data.totalAmount)}
+              {numberToWords((data.totalPropertyAmount || 0) - data.items.reduce((s,i)=>s+i.amount,0))} (Remaining)
             </div>
           </div>
         </div>
