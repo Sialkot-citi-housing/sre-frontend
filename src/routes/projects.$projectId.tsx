@@ -699,92 +699,109 @@ function ProjectLedger() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMaterial.map((row) => {
-                  return (
-                    <TableRow key={row.id} className="border-border transition-colors hover:bg-accent/40">
-                      <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{row.date}</TableCell>
-                      <TableCell className="font-medium text-foreground">{row.item}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{row.vendor}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(row.quantity)}</TableCell>
-                      <TableCell className="text-muted-foreground">{row.unit}</TableCell>
-                      <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(row.rate)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(getProcurementTotal(row))}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(row.paid)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, getProcurementTotal(row) - row.paid))}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Open menu">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-[160px]">
-                            <DropdownMenuItem onClick={() => setEditProcurementId(row.id || row._id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
-                              <Pencil className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteProcurement(row.id || row._id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {materialTab === "all" && contractorPayments.map((p) => {
-                  const pContractor = p.contractorId || p.contractor;
-                  const c = contractors.find(x => x._id === pContractor || x.id === pContractor);
-                  if (!c) return null;
+                {(() => {
+                  let entries: Array<{ type: 'procurement'; data: any } | { type: 'contractor_payment'; data: any }> = [];
+                  filteredMaterial.forEach((row: any) => entries.push({ type: 'procurement', data: row }));
+                  if (materialTab === "all") {
+                    contractorPayments.forEach((p: any) => entries.push({ type: 'contractor_payment', data: p }));
+                  }
                   
-                  const paymentsForThisContractor = contractorPayments.filter(
-                    (x: any) => (x.contractorId || x.contractor) === pContractor
-                  );
-                  const pIndex = paymentsForThisContractor.findIndex(x => (x._id || x.id) === (p._id || p.id));
-                  const paidUpToThis = paymentsForThisContractor
-                    .slice(0, pIndex + 1)
-                    .reduce((sum: any, x: any) => sum + x.amount, 0);
+                  // Sort chronologically (ascending)
+                  entries.sort((a, b) => new Date(a.data.date).getTime() - new Date(b.data.date).getTime());
 
-                  return (
-                    <TableRow key={`cp-${p._id || p.id}`} className="border-border bg-[color:var(--sre-blue)]/5 hover:bg-[color:var(--sre-blue)]/10">
-                      <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{p.date}</TableCell>
-                      <TableCell>
-                        <div className="font-medium text-foreground">Payment to {c.name}</div>
-                        <div className="text-[11px] text-[color:var(--sre-blue)]">Contractor · {c.role}</div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{p.method}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">—</TableCell>
-                      <TableCell className="text-muted-foreground">—</TableCell>
-                      <TableCell className="text-right text-muted-foreground">—</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(c.agreedAmount)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(p.amount)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, c.agreedAmount - paidUpToThis))}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Open menu">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-[160px]">
-                            <DropdownMenuItem onClick={() => setEditContractorPaymentId(p._id || p.id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
-                              <Pencil className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteContractorPayment(p._id || p.id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {filteredMaterial.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
-                      No procurement entries in this category yet.
-                    </TableCell>
-                  </TableRow>
-                )}
+                  if (entries.length === 0) {
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
+                          No entries found in this category yet.
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+
+                  return entries.map((entry) => {
+                    if (entry.type === 'procurement') {
+                      const row = entry.data;
+                      return (
+                        <TableRow key={`proc-${row.id || row._id}`} className="border-border transition-colors hover:bg-accent/40">
+                          <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{row.date}</TableCell>
+                          <TableCell className="font-medium text-foreground">{row.item}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{row.vendor}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(row.quantity)}</TableCell>
+                          <TableCell className="text-muted-foreground">{row.unit}</TableCell>
+                          <TableCell className="text-right tabular-nums text-foreground">{fmtPKR(row.rate)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(getProcurementTotal(row))}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(row.paid)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, getProcurementTotal(row) - row.paid))}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Open menu">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-[160px]">
+                                <DropdownMenuItem onClick={() => setEditProcurementId(row.id || row._id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
+                                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteProcurement(row.id || row._id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    } else {
+                      const p = entry.data;
+                      const pContractor = p.contractorId || p.contractor;
+                      const c = contractors.find((x: any) => x._id === pContractor || x.id === pContractor);
+                      if (!c) return null;
+                      
+                      const paymentsForThisContractor = contractorPayments.filter(
+                        (x: any) => (x.contractorId || x.contractor) === pContractor
+                      );
+                      const pIndex = paymentsForThisContractor.findIndex((x: any) => (x._id || x.id) === (p._id || p.id));
+                      const paidUpToThis = paymentsForThisContractor
+                        .slice(0, pIndex + 1)
+                        .reduce((sum: any, x: any) => sum + x.amount, 0);
+
+                      return (
+                        <TableRow key={`cp-${p._id || p.id}`} className="border-border bg-[color:var(--sre-blue)]/5 hover:bg-[color:var(--sre-blue)]/10">
+                          <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{p.date}</TableCell>
+                          <TableCell>
+                            <div className="font-medium text-foreground">Payment to {c.name}</div>
+                            <div className="text-[11px] text-[color:var(--sre-blue)]">Contractor · {c.role}</div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{p.method}</TableCell>
+                          <TableCell className="text-right text-muted-foreground">—</TableCell>
+                          <TableCell className="text-muted-foreground">—</TableCell>
+                          <TableCell className="text-right text-muted-foreground">—</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(c.agreedAmount)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(p.amount)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold text-foreground">{fmtPKR(Math.max(0, c.agreedAmount - paidUpToThis))}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Open menu">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-[160px]">
+                                <DropdownMenuItem onClick={() => setEditContractorPaymentId(p._id || p.id)} className="cursor-pointer font-medium text-[color:var(--sre-blue)] focus:text-[color:var(--sre-blue)]">
+                                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteContractorPayment(p._id || p.id)} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
+                  });
+                })()}
               </TableBody>
             </Table>
           </div>
