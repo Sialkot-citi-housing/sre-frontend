@@ -165,12 +165,9 @@ function AddFundDialog() {
   );
 }
 
-function AddExpenseDialog({ projects, contractors }: { projects: any[]; contractors: any[] }) {
+function AddExpenseDialog() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [scope, setScope] = useState<"project" | "office">("project");
-  const [projectId, setProjectId] = useState<string>(projects[0]?._id ?? "");
-  const [spendType, setSpendType] = useState<"material" | "contractor">("material");
 
   const [date, setDate] = useState(today());
   // office fields
@@ -179,19 +176,6 @@ function AddExpenseDialog({ projects, contractors }: { projects: any[]; contract
   const [paidTo, setPaidTo] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("Cash");
   const [amount, setAmount] = useState<number>(0);
-  // material fields
-  const [matCategory, setMatCategory] = useState<MaterialCategory>("cement");
-  const [item, setItem] = useState("");
-  const [vendor, setVendor] = useState("");
-  const [quantity, setQuantity] = useState<number>(0);
-  const [unit, setUnit] = useState("Bags");
-  const [rate, setRate] = useState<number>(0);
-  const [paid, setPaid] = useState<number>(0);
-  // contractor fields
-  const [contractorId, setContractorId] = useState<string>("");
-  const [note, setNote] = useState("");
-
-  const projectContractors = contractors.filter((c) => c.project === projectId);
   const [isPending, setIsPending] = useState(false);
 
   const reset = () => {
@@ -199,54 +183,21 @@ function AddExpenseDialog({ projects, contractors }: { projects: any[]; contract
     setDescription("");
     setPaidTo("");
     setAmount(0);
-    setItem("");
-    setVendor("");
-    setQuantity(0);
-    setUnit("Bags");
-    setRate(0);
-    setPaid(0);
-    setContractorId("");
-    setNote("");
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsPending(true);
     try {
-      if (scope === "office") {
-        await api.addOfficeExpense({
-          date,
-          category: officeCategory,
-          description,
-          paidTo,
-          method,
-          amount: Number(amount) || 0,
-        });
-        queryClient.invalidateQueries({ queryKey: ["officeExpenses"] });
-      } else if (spendType === "material") {
-        await api.addProcurement({
-          project: projectId,
-          date,
-          item,
-          category: matCategory,
-          quantity: Number(quantity) || 0,
-          unit,
-          rate: Number(rate) || 0,
-          vendor,
-          paid: Number(paid) || 0,
-        });
-        queryClient.invalidateQueries({ queryKey: ["procurements"] });
-      } else {
-        if (!contractorId) return;
-        await api.addContractorPayment({
-          contractor: contractorId,
-          project: projectId,
-          date,
-          amount: Number(amount) || 0,
-          note,
-        });
-        queryClient.invalidateQueries({ queryKey: ["contractorPayments"] });
-      }
+      await api.addOfficeExpense({
+        date,
+        category: officeCategory,
+        description,
+        paidTo,
+        method,
+        amount: Number(amount) || 0,
+      });
+      queryClient.invalidateQueries({ queryKey: ["officeExpenses"] });
       toast.success("Expense recorded successfully.");
       reset();
       setOpen(false);
@@ -268,115 +219,18 @@ function AddExpenseDialog({ projects, contractors }: { projects: any[]; contract
         <DialogHeader>
           <DialogTitle>Add Expense</DialogTitle>
           <DialogDescription>
-            Project-linked expenses auto-append to that project's ledger. Others go to Office overhead.
+            Record expenses that are strictly for office overhead, salaries, utility bills etc.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={submit} className="space-y-5 py-2">
-          <Tabs value={scope} onValueChange={(v) => setScope(v as "project" | "office")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="project">Project-linked</TabsTrigger>
-              <TabsTrigger value="office">Office / Overhead</TabsTrigger>
-            </TabsList>
-          </Tabs>
 
           <div className="grid gap-2">
             <Label>Date</Label>
             <Input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
 
-          {scope === "project" ? (
-            <>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label>Project</Label>
-                  <Select value={projectId} onValueChange={setProjectId}>
-                    <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
-                    <SelectContent>
-                      {projects.map((p) => (
-                        <SelectItem key={p._id} value={p._id}>{p.plot} — {p.client}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Spend Type</Label>
-                  <Select value={spendType} onValueChange={(v) => setSpendType(v as "material" | "contractor")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="material">Material</SelectItem>
-                      <SelectItem value="contractor">Contractor Payment</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              {spendType === "material" ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label>Category</Label>
-                    <Select value={matCategory} onValueChange={(v) => setMatCategory(v as MaterialCategory)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {MATERIAL_CATEGORY_OPTIONS.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Item</Label>
-                    <Input required value={item} onChange={(e) => setItem(e.target.value)} placeholder="e.g. Lucky Cement" />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Vendor</Label>
-                    <Input required value={vendor} onChange={(e) => setVendor(e.target.value)} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Unit</Label>
-                    <Input required value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Bags / Pcs / Tons" />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Quantity</Label>
-                    <Input required type="number" step="any" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Rate / unit (PKR)</Label>
-                    <Input required type="number" step="any" value={rate} onChange={(e) => setRate(Number(e.target.value))} />
-                  </div>
-                  <div className="grid gap-2 sm:col-span-2">
-                    <Label>Paid to Vendor (PKR)</Label>
-                    <Input required type="number" step="any" value={paid} onChange={(e) => setPaid(Number(e.target.value))} />
-                  </div>
-                </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="grid gap-2 sm:col-span-2">
-                    <Label>Contractor</Label>
-                    <Select value={contractorId} onValueChange={setContractorId}>
-                      <SelectTrigger><SelectValue placeholder="Select contractor" /></SelectTrigger>
-                      <SelectContent>
-                        {projectContractors.length === 0 && (
-                          <SelectItem value="_none" disabled>No contractors on this project</SelectItem>
-                        )}
-                        {projectContractors.map((c) => (
-                          <SelectItem key={c._id} value={c._id}>{c.role} — {c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Amount (PKR)</Label>
-                    <Input required type="number" step="any" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Note</Label>
-                    <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Slab milestone" />
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label>Category</Label>
@@ -413,7 +267,6 @@ function AddExpenseDialog({ projects, contractors }: { projects: any[]; contract
                 <Input required type="number" step="any" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
               </div>
             </div>
-          )}
 
           <DialogFooter className="gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={isPending}>Cancel</Button>
@@ -431,74 +284,28 @@ function OfficeExpenses() {
   useEffect(() => {
     document.title = "Office Expenses | Sialkot Real Estate";
   }, []);
-  const [tab, setTab] = useState<"all" | "project" | "office">("all");
   const queryClient = useQueryClient();
   const [editOfficeExpenseId, setEditOfficeExpenseId] = useState<string | null>(null);
-  const [editProcurementId, setEditProcurementId] = useState<string | null>(null);
-  const [editPaymentId, setEditPaymentId] = useState<string | null>(null);
 
   const handleEdit = (id: string) => {
     if (id.startsWith('off-')) setEditOfficeExpenseId(id.slice(4));
-    else if (id.startsWith('mat-')) setEditProcurementId(id.slice(4));
-    else if (id.startsWith('con-')) setEditPaymentId(id.slice(4));
   };
 
   const handleDelete = (id: string) => {
     if (!confirm("Are you sure you want to delete this record?")) return;
     if (id.startsWith('off-')) {
       api.deleteOfficeExpense(id.slice(4)).then(() => { toast.success("Deleted"); queryClient.invalidateQueries({ queryKey: ["officeExpenses"] }); }).catch(e => toast.error(e.message));
-    } else if (id.startsWith('mat-')) {
-      api.deleteProcurement(id.slice(4)).then(() => { toast.success("Deleted"); queryClient.invalidateQueries({ queryKey: ["procurements"] }); }).catch(e => toast.error(e.message));
-    } else if (id.startsWith('con-')) {
-      api.deleteContractorPayment(id.slice(4)).then(() => { toast.success("Deleted"); queryClient.invalidateQueries({ queryKey: ["contractorPayments"] }); }).catch(e => toast.error(e.message));
     }
   };
 
-  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({ queryKey: ["projects"], queryFn: api.getProjects });
-  const { data: contractors = [], isLoading: isLoadingContractors } = useQuery({ queryKey: ["contractors"], queryFn: api.getAllContractors });
-  const { data: procurements = [], isLoading: isLoadingProcurements } = useQuery({ queryKey: ["procurements"], queryFn: api.getAllProcurements });
-  const { data: contractorPayments = [], isLoading: isLoadingPayments } = useQuery({ queryKey: ["contractorPayments"], queryFn: api.getAllContractorPayments });
   const { data: funds = [], isLoading: isLoadingFunds } = useQuery({ queryKey: ["funds"], queryFn: api.getFunds });
   const { data: officeExpenses = [], isLoading: isLoadingOffice } = useQuery({ queryKey: ["officeExpenses"], queryFn: api.getOfficeExpenses });
 
-  const isLoading = isLoadingProjects || isLoadingContractors || isLoadingProcurements || isLoadingPayments || isLoadingFunds || isLoadingOffice;
+  const isLoading = isLoadingFunds || isLoadingOffice;
 
-  const projectById = useMemo(
-    () => Object.fromEntries(projects.map((p: any) => [p._id, p])),
-    [projects],
-  );
-  const contractorById = useMemo(
-    () => Object.fromEntries(contractors.map((c: any) => [c._id, c])),
-    [contractors],
-  );
-
-  // Unified expense rows
+  // Unified expense rows (now only Office Expenses)
   const rows: Row[] = useMemo(() => {
     const list: Row[] = [];
-    procurements.forEach((p: any) => {
-      if (!p.paid) return;
-      list.push({
-        id: `mat-${p._id}`,
-        date: p.date,
-        project: projectById[p.project]?.plot ?? "—",
-        type: "Material",
-        description: p.item,
-        detail: `${p.quantity} ${p.unit} @ ${fmtPKR(p.rate)} · Vendor: ${p.vendor}`,
-        amount: p.paid,
-      });
-    });
-    contractorPayments.forEach((cp: any) => {
-      const c = contractorById[cp.contractor];
-      list.push({
-        id: `con-${cp._id}`,
-        date: cp.date,
-        project: c ? projectById[c.project]?.plot ?? "—" : "—",
-        type: "Contractor",
-        description: c ? `${c.role} — ${c.name}` : "Contractor payment",
-        detail: cp.note || "—",
-        amount: cp.amount,
-      });
-    });
     officeExpenses.forEach((e: any) => {
       list.push({
         id: `off-${e._id}`,
@@ -511,18 +318,12 @@ function OfficeExpenses() {
       });
     });
     return list.sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [procurements, contractorPayments, officeExpenses, projectById, contractorById]);
-
-  const filtered = rows.filter((r) =>
-    tab === "all" ? true : tab === "office" ? r.type === "Office" : r.type !== "Office",
-  );
-
+  }, [officeExpenses]);
   const totalFunds = funds.reduce((s: number, f: any) => s + f.amount, 0);
   const totalSpent = rows.reduce((s, r) => s + r.amount, 0);
   const balance = totalFunds - totalSpent;
   const todayStr = today();
   const spentToday = rows.filter((r) => r.date === todayStr).reduce((s, r) => s + r.amount, 0);
-  const filteredTotal = filtered.reduce((s, r) => s + r.amount, 0);
 
   if (isLoading) {
     return (
@@ -556,7 +357,7 @@ function OfficeExpenses() {
             </div>
             <div className="flex flex-wrap gap-2">
               <AddFundDialog />
-              <AddExpenseDialog projects={projects} contractors={contractors} />
+              <AddExpenseDialog />
             </div>
           </div>
 
@@ -631,26 +432,11 @@ function OfficeExpenses() {
               <div>
                 <h3 className="text-base font-semibold text-foreground">Expenses Log</h3>
                 <p className="text-xs text-muted-foreground">
-                  Project-linked expenses also appear on that project's ledger automatically.
+                  Standalone office overhead and day-to-day spending.
                 </p>
               </div>
             </div>
             <AddExpenseDialog projects={projects} contractors={contractors} />
-          </div>
-          <div className="border-b border-border px-6 py-3">
-            <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-              <TabsList className="flex h-auto flex-wrap gap-1 bg-secondary/60 p-1">
-                <TabsTrigger value="all" className="data-[state=active]:bg-card data-[state=active]:text-[color:var(--sre-blue)] data-[state=active]:shadow-sm text-xs font-medium">
-                  All Expenses
-                </TabsTrigger>
-                <TabsTrigger value="project" className="data-[state=active]:bg-card data-[state=active]:text-[color:var(--sre-blue)] data-[state=active]:shadow-sm text-xs font-medium">
-                  Project-linked
-                </TabsTrigger>
-                <TabsTrigger value="office" className="data-[state=active]:bg-card data-[state=active]:text-[color:var(--sre-blue)] data-[state=active]:shadow-sm text-xs font-medium">
-                  Office Only
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
           </div>
           <div className="overflow-x-auto">
             <Table>
@@ -666,7 +452,7 @@ function OfficeExpenses() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => (
+                {rows.map((r) => (
                   <TableRow key={r.id} className="border-border transition-colors hover:bg-accent/40">
                     <TableCell className="whitespace-nowrap text-sm font-medium text-foreground">{r.date}</TableCell>
                     <TableCell>
@@ -699,7 +485,7 @@ function OfficeExpenses() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filtered.length === 0 && (
+                {rows.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                       No expenses in this view.
@@ -710,9 +496,9 @@ function OfficeExpenses() {
             </Table>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/40 px-6 py-3 text-sm">
-            <span className="text-muted-foreground">{filtered.length} entries</span>
+            <span className="text-muted-foreground">{rows.length} entries</span>
             <span className="font-semibold text-foreground">
-              {tab === "all" ? "Total" : "Subtotal"}: PKR {fmtPKR(filteredTotal)}
+              Total: PKR {fmtPKR(totalSpent)}
             </span>
           </div>
         </div>
@@ -752,80 +538,6 @@ function OfficeExpenses() {
             queryClient.invalidateQueries({ queryKey: ["officeExpenses"] });
             toast.success("Expense updated");
             setEditOfficeExpenseId(null);
-          }).catch(e => toast.error(e.message));
-        }}
-      />
-
-      <EditRecordDialog
-        open={editProcurementId !== null}
-        onOpenChange={(v) => !v && setEditProcurementId(null)}
-        title="Edit Procurement Entry"
-        fields={(draft) => [
-          { key: "date", label: "Date", type: "date", required: true },
-          { key: "category", label: "Category", type: "select", options: MATERIAL_CATEGORY_OPTIONS, required: true, onChange: (val, setField) => {
-            const unitMap: Record<string, string> = { bricks: "Pcs", cement: "Bags", steel: "Kg", sand: "Trolly", crush: "ft" };
-            if (unitMap[val]) setField("unit", unitMap[val]);
-          } },
-          { key: "item", label: "Item", type: "text", required: true },
-          { key: "vendor", label: "Vendor", type: "text", required: true },
-          ...(draft.category === 'other' ? [] : [
-            { key: "quantity", label: "Quantity", type: "number", required: true },
-            { key: "unit", label: "Unit", type: "text", required: true },
-            { key: "rate", label: "Rate", type: "number", required: true }
-          ] as const),
-          { key: "paid", label: draft.category === 'other' ? "Total Amount Paid (PKR)" : "Paid", type: "number", required: true },
-        ]}
-        values={
-          editProcurementId
-            ? (() => {
-                const record = procurements.find((r: any) => (r.id || r._id) === editProcurementId);
-                if (!record) return null;
-                return { ...record };
-              })()
-            : null
-        }
-        onSave={(v) => {
-          const isOther = v.category === 'other';
-          api.updateProcurement(editProcurementId!, { 
-            date: String(v.date), 
-            item: String(v.item), 
-            category: v.category as any, 
-            quantity: isOther ? 0 : Number(v.quantity), 
-            unit: isOther ? "Lump Sum" : String(v.unit), 
-            rate: isOther ? 0 : Number(v.rate), 
-            vendor: String(v.vendor), 
-            paid: Number(v.paid) 
-          }).then(() => {
-            queryClient.invalidateQueries({ queryKey: ["procurements"] });
-            toast.success("Procurement updated");
-            setEditProcurementId(null);
-          }).catch(e => toast.error(e.message));
-        }}
-      />
-
-      <EditRecordDialog
-        open={editPaymentId !== null}
-        onOpenChange={(v) => !v && setEditPaymentId(null)}
-        title="Edit Payment"
-        fields={[
-          { key: "date", label: "Date", type: "date", required: true },
-          { key: "amount", label: "Amount (PKR)", type: "number", required: true },
-          { key: "note", label: "Note / Ref", type: "text" },
-        ]}
-        values={
-          editPaymentId
-            ? (() => {
-                const record = contractorPayments.find((r: any) => (r.id || r._id) === editPaymentId);
-                if (!record) return null;
-                return { ...record };
-              })()
-            : null
-        }
-        onSave={(v) => {
-          api.updateContractorPayment(editPaymentId!, { date: String(v.date), amount: Number(v.amount), note: String(v.note) }).then(() => {
-            queryClient.invalidateQueries({ queryKey: ["contractorPayments"] });
-            toast.success("Payment updated");
-            setEditPaymentId(null);
           }).catch(e => toast.error(e.message));
         }}
       />
