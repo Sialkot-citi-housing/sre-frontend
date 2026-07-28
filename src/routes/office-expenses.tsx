@@ -396,7 +396,7 @@ function OfficeExpenses() {
             <StatTile icon={<Wallet className="h-4 w-4" />} label="Opening Balance" value={`PKR ${fmtPKR(openingBalance)}`} />
             <StatTile icon={<ArrowDownCircle className="h-4 w-4" />} label="Received Today" value={`PKR ${fmtPKR(todayFundsTotal)}`} tone="positive" />
             <StatTile icon={<ArrowUpCircle className="h-4 w-4" />} label="Paid Today" value={`PKR ${fmtPKR(todayExpensesTotal)}`} tone="negative" />
-            <StatTile icon={<Landmark className="h-4 w-4" />} label="Closing Balance" value={`PKR ${fmtPKR(closingBalance)}`} tone="balance" />
+            <StatTile icon={<Landmark className="h-4 w-4" />} label="Cash in Hand" value={`PKR ${fmtPKR(closingBalance)}`} tone="balance" />
           </div>
         </div>
 
