@@ -293,18 +293,23 @@ function OfficeExpenses() {
   }, []);
   const queryClient = useQueryClient();
   const [editOfficeExpenseId, setEditOfficeExpenseId] = useState<string | null>(null);
+  const [editFundId, setEditFundId] = useState<string | null>(null);
   
   const [startDate, setStartDate] = useState<string>(today());
   const [endDate, setEndDate] = useState<string>(today());
 
   const handleEdit = (id: string) => {
     if (id.startsWith('off-')) setEditOfficeExpenseId(id.slice(4));
+    if (id.startsWith('fnd-')) setEditFundId(id.slice(4));
   };
 
   const handleDelete = (id: string) => {
     if (!confirm("Are you sure you want to delete this record?")) return;
     if (id.startsWith('off-')) {
       api.deleteOfficeExpense(id.slice(4)).then(() => { toast.success("Deleted"); queryClient.invalidateQueries({ queryKey: ["officeExpenses"] }); }).catch(e => toast.error(e.message));
+    }
+    if (id.startsWith('fnd-')) {
+      api.deleteFund(id.slice(4)).then(() => { toast.success("Deleted"); queryClient.invalidateQueries({ queryKey: ["funds"] }); }).catch(e => toast.error(e.message));
     }
   };
 
@@ -417,6 +422,7 @@ function OfficeExpenses() {
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Method</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-foreground">Note</TableHead>
                     <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground">Amount (PKR)</TableHead>
+                    <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-foreground print:hidden">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -427,11 +433,28 @@ function OfficeExpenses() {
                       <TableCell className="text-sm text-muted-foreground">{f.method}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{f.note || "—"}</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold text-emerald-700">{fmtPKR(f.amount)}</TableCell>
+                      <TableCell className="text-right print:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem onClick={() => handleEdit(`fnd-${f._id}`)} className="cursor-pointer">
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(`fnd-${f._id}`)} className="cursor-pointer text-red-600 focus:text-red-700">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {periodFundsList.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
                         No funds received in this period.
                       </TableCell>
                     </TableRow>
@@ -744,38 +767,48 @@ function OfficeExpenses() {
       {/* EDIT DIALOGS */}
       <EditRecordDialog
         open={editOfficeExpenseId !== null}
-        onOpenChange={(v) => !v && setEditOfficeExpenseId(null)}
+        onOpenChange={(v) => { if (!v) setEditOfficeExpenseId(null); }}
         title="Edit Office Expense"
+        values={editOfficeExpenseId ? (officeExpenses.find((r: any) => (r.id || r._id) === editOfficeExpenseId) || null) : null}
         fields={[
           { key: "date", label: "Date", type: "date", required: true },
           { key: "category", label: "Category", type: "select", options: OFFICE_EXPENSE_CATEGORIES, required: true },
-          { key: "description", label: "Description", type: "text", required: true },
-          { key: "paidTo", label: "Paid To", type: "text", required: true },
           { key: "method", label: "Method", type: "select", options: PAYMENT_METHODS, required: true },
+          { key: "description", label: "Description", type: "textarea", required: true },
+          { key: "paidTo", label: "Paid To", type: "text", required: true },
           { key: "amount", label: "Amount (PKR)", type: "number", required: true },
         ]}
-        values={
-          editOfficeExpenseId
-            ? (() => {
-                const record = officeExpenses.find((r: any) => (r.id || r._id) === editOfficeExpenseId);
-                if (!record) return null;
-                return { ...record };
-              })()
-            : null
-        }
-        onSave={(v) => {
-          api.updateOfficeExpense(editOfficeExpenseId!, { 
-            date: String(v.date), 
-            category: v.category as any, 
-            description: String(v.description), 
-            paidTo: String(v.paidTo), 
-            method: v.method as any, 
-            amount: Number(v.amount) 
-          }).then(() => {
-            queryClient.invalidateQueries({ queryKey: ["officeExpenses"] });
-            toast.success("Expense updated");
-            setEditOfficeExpenseId(null);
-          }).catch(e => toast.error(e.message));
+        onSave={(vals) => {
+          if (editOfficeExpenseId) {
+            api.updateOfficeExpense(editOfficeExpenseId, vals).then(() => {
+              toast.success("Updated");
+              queryClient.invalidateQueries({ queryKey: ["officeExpenses"] });
+              setEditOfficeExpenseId(null);
+            }).catch((e: any) => toast.error(e.message));
+          }
+        }}
+      />
+      
+      <EditRecordDialog
+        open={editFundId !== null}
+        onOpenChange={(v) => { if (!v) setEditFundId(null); }}
+        title="Edit Fund Received"
+        values={editFundId ? (funds.find((r: any) => (r.id || r._id) === editFundId) || null) : null}
+        fields={[
+          { key: "date", label: "Date", type: "date", required: true },
+          { key: "amount", label: "Amount (PKR)", type: "number", required: true },
+          { key: "method", label: "Method", type: "select", options: ["Cash", "Bank Transfer", "Cheque"], required: true },
+          { key: "from", label: "Received From", type: "text", required: true },
+          { key: "note", label: "Note", type: "text" },
+        ]}
+        onSave={(vals) => {
+          if (editFundId) {
+            api.updateFund(editFundId, vals).then(() => {
+              toast.success("Updated");
+              queryClient.invalidateQueries({ queryKey: ["funds"] });
+              setEditFundId(null);
+            }).catch((e: any) => toast.error(e.message));
+          }
         }}
       />
     </AppShell>
