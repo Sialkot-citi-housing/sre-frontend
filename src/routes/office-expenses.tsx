@@ -662,8 +662,16 @@ function OfficeExpenses() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={4} className="py-3 px-4 text-right font-extrabold text-[12px] text-[#082041]">TOTAL RECEIVED</td>
-                    <td className="py-3 px-4 text-right font-extrabold text-[13px] text-[#082041]">{fmtPKR(periodFundsTotal)}</td>
+                    <td colSpan={4} className="pt-3 pb-1 px-4 text-right font-bold text-[11px] text-[#082041] opacity-80 border-t border-[#082041]">PREVIOUS BALANCE</td>
+                    <td className="pt-3 pb-1 px-4 text-right font-bold text-[12px] text-[#082041] border-t border-[#082041]">{fmtPKR(openingBalance)}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan={4} className="py-1 px-4 text-right font-bold text-[11px] text-[#082041] opacity-80">RECEIVED TODAY</td>
+                    <td className="py-1 px-4 text-right font-bold text-[12px] text-[#082041]">{fmtPKR(periodFundsTotal)}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan={4} className="pt-1 pb-3 px-4 text-right font-extrabold text-[12px] text-[#082041]">TOTAL CASH AVAILABLE</td>
+                    <td className="pt-1 pb-3 px-4 text-right font-extrabold text-[13px] text-[#082041]">{fmtPKR(periodFundsTotal + openingBalance)}</td>
                   </tr>
                 </tfoot>
               </table>
