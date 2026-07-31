@@ -20,7 +20,7 @@ export type InvoiceData = {
   customerPhone: string;
   customerEmail?: string;
   propertyDetails?: string;
-  officeService?: string;
+  officeService?: string | number;
   items: InvoiceItem[];
   extraCharges?: ExtraCharge[];
   totalPropertyAmount: number;
@@ -58,8 +58,9 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
   const primaryColor = "#082041";
   const accentColor = "#D51017";
 
+  const officeServiceFee = Number(data.officeService) || 0;
   const totalExtraCharges = data.extraCharges ? data.extraCharges.reduce((s, c) => s + c.amount, 0) : 0;
-  const grandTotalDue = (data.totalPropertyAmount || 0) + totalExtraCharges;
+  const grandTotalDue = (data.totalPropertyAmount || 0) + officeServiceFee + totalExtraCharges;
   const totalPaid = data.items.reduce((s,i) => s + i.amount, 0);
   const remainingBalance = grandTotalDue - totalPaid;
 
@@ -226,6 +227,13 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
             <span className="font-bold text-[#082041] tracking-wide">TOTAL PROPERTY VALUE</span>
             <span className="tabular-nums text-gray-700">{fmtPKR(data.totalPropertyAmount || 0)}</span>
           </div>
+
+          {officeServiceFee > 0 && (
+            <div className="flex justify-between py-2 border-b border-gray-200 px-4">
+              <span className="font-bold text-[#082041] tracking-wide uppercase">OFFICE SERVICE FEE</span>
+              <span className="tabular-nums text-gray-700">{fmtPKR(officeServiceFee)}</span>
+            </div>
+          )}
           
           {data.extraCharges && data.extraCharges.length > 0 && (
             <div className="py-2 border-b border-gray-200 px-4 bg-gray-50/50">

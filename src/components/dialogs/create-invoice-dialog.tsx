@@ -20,7 +20,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [propertyDetails, setPropertyDetails] = useState("");
-  const [officeService, setOfficeService] = useState("");
+  const [officeService, setOfficeService] = useState<number>(0);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [totalPropertyAmount, setTotalPropertyAmount] = useState<number>(0);
   
@@ -38,7 +38,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
         setCustomerPhone(initialData.customerPhone || "");
         setCustomerEmail(initialData.customerEmail || "");
         setPropertyDetails(initialData.propertyDetails || "");
-        setOfficeService(initialData.officeService || "");
+        setOfficeService(Number(initialData.officeService) || 0);
         setDate(initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
         setTotalPropertyAmount(initialData.totalPropertyAmount || 0);
         
@@ -67,7 +67,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
         setCustomerPhone("");
         setCustomerEmail("");
         setPropertyDetails("");
-        setOfficeService("");
+        setOfficeService(0);
         setDate(new Date().toISOString().split("T")[0]);
         setTotalPropertyAmount(0);
         setItems([{ description: "", date: new Date().toISOString().split("T")[0], amount: 0 }]);
@@ -78,7 +78,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
   }, [open, initialData]);
 
   const totalExtraCharges = extraCharges.reduce((sum, charge) => sum + charge.amount, 0);
-  const totalDue = totalPropertyAmount + totalExtraCharges;
+  const totalDue = totalPropertyAmount + (Number(officeService) || 0) + totalExtraCharges;
   const totalPaid = items.reduce((sum, item) => sum + item.amount, 0);
   const remainingBalance = totalDue - totalPaid;
 
@@ -238,8 +238,8 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
                 <Input value={propertyDetails} onChange={e => setPropertyDetails(e.target.value)} placeholder="e.g. 5 Marla Plot, Block A" />
               </div>
               <div className="space-y-2">
-                <Label>Office Service</Label>
-                <Input value={officeService} onChange={e => setOfficeService(e.target.value)} placeholder="e.g. Consultancy / File Transfer" />
+                <Label>Office Service Fee (PKR)</Label>
+                <Input type="number" value={officeService || ""} onChange={e => setOfficeService(Number(e.target.value))} placeholder="e.g. 5000" />
               </div>
             </div>
 
@@ -304,6 +304,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
               </div>
               <div className="flex flex-col items-end text-right font-semibold text-sm pt-4 space-y-1">
                 <div>Property Amount: PKR {totalPropertyAmount.toLocaleString()}</div>
+                {Number(officeService) > 0 && <div>Office Service Fee: PKR {Number(officeService).toLocaleString()}</div>}
                 {totalExtraCharges > 0 && <div>Extra Charges: PKR {totalExtraCharges.toLocaleString()}</div>}
                 <div className="text-base">Grand Total Due: PKR {totalDue.toLocaleString()}</div>
                 <div className="text-emerald-600">Total Received: PKR {totalPaid.toLocaleString()}</div>
