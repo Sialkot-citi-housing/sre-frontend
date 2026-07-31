@@ -285,8 +285,8 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
         {/* Signature */}
         <div className="text-center w-48 -mr-4">
           <div className="border-b border-[#082041] pb-2 mb-2 flex justify-center">
-             {/* Simple handwritten signature simulation */}
-             <span className="font-signature text-4xl text-gray-800 italic pr-4" style={{fontFamily: "'Brush Script MT', 'Dancing Script', cursive"}}>ARehman</span>
+             {/* Blank space for manual handwritten signature */}
+             <div className="h-10"></div>
           </div>
           <div className="text-[9px] font-bold text-[#082041]">Authorized Signature</div>
           <div className="text-[8px] text-gray-500">For Sialkot Real Estate</div>
