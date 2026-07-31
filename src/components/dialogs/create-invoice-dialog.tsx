@@ -27,6 +27,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
   const [items, setItems] = useState<InvoiceItem[]>([
     { description: "", date: new Date().toISOString().split("T")[0], amount: 0 }
   ]);
+  const [extraCharges, setExtraCharges] = useState<{description: string; amount: number}[]>([]);
   
   const [generatedInvoiceNo, setGeneratedInvoiceNo] = useState<string>("");
 
@@ -53,6 +54,13 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
         }));
         
         setItems(formattedItems);
+        
+        if (initialData.extraCharges && initialData.extraCharges.length > 0) {
+          setExtraCharges(JSON.parse(JSON.stringify(initialData.extraCharges)));
+        } else {
+          setExtraCharges([]);
+        }
+
         setGeneratedInvoiceNo(initialData.invoiceNumber || "");
       } else {
         setCustomerName("");
@@ -63,13 +71,16 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
         setDate(new Date().toISOString().split("T")[0]);
         setTotalPropertyAmount(0);
         setItems([{ description: "", date: new Date().toISOString().split("T")[0], amount: 0 }]);
+        setExtraCharges([]);
         setGeneratedInvoiceNo("");
       }
     }
   }, [open, initialData]);
 
+  const totalExtraCharges = extraCharges.reduce((sum, charge) => sum + charge.amount, 0);
+  const totalDue = totalPropertyAmount + totalExtraCharges;
   const totalPaid = items.reduce((sum, item) => sum + item.amount, 0);
-  const remainingBalance = totalPropertyAmount - totalPaid;
+  const remainingBalance = totalDue - totalPaid;
 
   const handleAddItem = () => {
     setItems([...items, { description: "", date: new Date().toISOString().split("T")[0], amount: 0 }]);
@@ -83,6 +94,20 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
+  };
+
+  const handleAddExtraCharge = () => {
+    setExtraCharges([...extraCharges, { description: "", amount: 0 }]);
+  };
+
+  const handleRemoveExtraCharge = (index: number) => {
+    setExtraCharges(extraCharges.filter((_, i) => i !== index));
+  };
+
+  const updateExtraCharge = (index: number, field: "description" | "amount", value: any) => {
+    const newCharges = [...extraCharges];
+    newCharges[index] = { ...newCharges[index], [field]: value };
+    setExtraCharges(newCharges);
   };
 
 
@@ -106,6 +131,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
         propertyDetails,
         officeService,
         totalPropertyAmount,
+        extraCharges,
         items,
         status: initialData ? initialData.status : "Unpaid"
       };
@@ -171,6 +197,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
     propertyDetails,
     officeService,
     totalPropertyAmount,
+    extraCharges,
     items,
   };
 
@@ -221,6 +248,34 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
               <Input type="number" required value={totalPropertyAmount || ""} onChange={e => setTotalPropertyAmount(Number(e.target.value))} placeholder="e.g. 5000000" className="text-lg font-semibold" />
             </div>
 
+            {/* Extra Charges Section */}
+            <div className="space-y-3 pt-2">
+              <div className="flex justify-between items-center">
+                <Label>Extra Charges</Label>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddExtraCharge} className="gap-2">
+                  <Plus className="h-4 w-4" /> Add Charge
+                </Button>
+              </div>
+              
+              {extraCharges.length > 0 && (
+                <div className="border rounded-md divide-y divide-border">
+                  {extraCharges.map((charge, i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 bg-muted/5">
+                      <div className="flex-1 space-y-1">
+                        <Input placeholder="Description (e.g. Stamp Duty)" value={charge.description} onChange={e => updateExtraCharge(i, "description", e.target.value)} required />
+                      </div>
+                      <div className="w-40 space-y-1">
+                        <Input type="number" placeholder="Amount (PKR)" value={charge.amount || ""} onChange={e => updateExtraCharge(i, "amount", Number(e.target.value))} required />
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveExtraCharge(i)} className="text-red-500 shrink-0 h-9 w-9">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label>Payments / Installments Received</Label>
@@ -248,7 +303,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, initialData }: { open:
                 ))}
               </div>
               <div className="flex flex-col items-end text-right font-semibold text-sm pt-4 space-y-1">
-                <div>Total Property Amount: PKR {totalPropertyAmount.toLocaleString()}</div>
+                <div>Property Amount: PKR {totalPropertyAmount.toLocaleString()}</div>
+                {totalExtraCharges > 0 && <div>Extra Charges: PKR {totalExtraCharges.toLocaleString()}</div>}
+                <div className="text-base">Grand Total Due: PKR {totalDue.toLocaleString()}</div>
                 <div className="text-emerald-600">Total Received: PKR {totalPaid.toLocaleString()}</div>
                 <div className="text-xl font-bold text-[color:var(--sre-red)] pt-2 border-t mt-2 w-64">
                   Balance: PKR {remainingBalance.toLocaleString()}

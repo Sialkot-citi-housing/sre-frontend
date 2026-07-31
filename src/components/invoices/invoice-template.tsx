@@ -8,6 +8,11 @@ export type InvoiceItem = {
   amount: number;
 };
 
+export type ExtraCharge = {
+  description: string;
+  amount: number;
+};
+
 export type InvoiceData = {
   invoiceNumber?: string;
   date: string;
@@ -17,6 +22,7 @@ export type InvoiceData = {
   propertyDetails?: string;
   officeService?: string;
   items: InvoiceItem[];
+  extraCharges?: ExtraCharge[];
   totalPropertyAmount: number;
 };
 
@@ -51,6 +57,11 @@ function numberToWords(num: number): string {
 export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceData }>(({ data }, ref) => {
   const primaryColor = "#082041";
   const accentColor = "#D51017";
+
+  const totalExtraCharges = data.extraCharges ? data.extraCharges.reduce((s, c) => s + c.amount, 0) : 0;
+  const grandTotalDue = (data.totalPropertyAmount || 0) + totalExtraCharges;
+  const totalPaid = data.items.reduce((s,i) => s + i.amount, 0);
+  const remainingBalance = grandTotalDue - totalPaid;
 
   return (
     <div
@@ -215,13 +226,30 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
             <span className="font-bold text-[#082041] tracking-wide">TOTAL PROPERTY VALUE</span>
             <span className="tabular-nums text-gray-700">{fmtPKR(data.totalPropertyAmount || 0)}</span>
           </div>
+          
+          {data.extraCharges && data.extraCharges.length > 0 && (
+            <div className="py-2 border-b border-gray-200 px-4 bg-gray-50/50">
+               <div className="font-bold text-[#082041] tracking-wide mb-1 text-[9px] uppercase">Extra Charges</div>
+               {data.extraCharges.map((c, i) => (
+                  <div key={i} className="flex justify-between text-gray-600 ml-2 mb-0.5 text-[9px]">
+                     <span>- {c.description}</span>
+                     <span className="tabular-nums">{fmtPKR(c.amount)}</span>
+                  </div>
+               ))}
+               <div className="flex justify-between mt-2 pt-1 border-t border-gray-200/50">
+                 <span className="font-bold text-[#082041] tracking-wide">GRAND TOTAL DUE</span>
+                 <span className="tabular-nums font-bold text-[#082041]">{fmtPKR(grandTotalDue)}</span>
+               </div>
+            </div>
+          )}
+
           <div className="flex justify-between py-2 border-b border-gray-200 px-4">
             <span className="font-bold text-emerald-700 tracking-wide">TOTAL RECEIVED</span>
-            <span className="tabular-nums font-medium text-emerald-700">{fmtPKR(data.items.reduce((s,i)=>s+i.amount,0))}</span>
+            <span className="tabular-nums font-medium text-emerald-700">{fmtPKR(totalPaid)}</span>
           </div>
           <div className="bg-[#082041] text-white p-4 pt-3 pb-3 mt-4 rounded-sm shadow-md flex justify-between items-center">
             <div className="text-[9px] uppercase font-bold text-gray-300 tracking-wider">REMAINING BALANCE</div>
-            <div className="text-xl font-bold tabular-nums tracking-wide">PKR {fmtPKR((data.totalPropertyAmount || 0) - data.items.reduce((s,i)=>s+i.amount,0))}</div>
+            <div className="text-xl font-bold tabular-nums tracking-wide">PKR {fmtPKR(remainingBalance)}</div>
           </div>
         </div>
       </div>
@@ -236,7 +264,7 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
           <div>
             <div className="text-[8px] uppercase tracking-wider text-gray-300 mb-0.5">Amount in Words</div>
             <div className="text-[11px] font-medium leading-tight max-w-[320px]">
-              {numberToWords((data.totalPropertyAmount || 0) - data.items.reduce((s,i)=>s+i.amount,0))} (Remaining)
+              {numberToWords(remainingBalance)} (Remaining)
             </div>
           </div>
         </div>
