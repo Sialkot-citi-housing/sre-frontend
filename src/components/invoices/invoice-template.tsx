@@ -244,12 +244,17 @@ export const InvoiceTemplate = React.forwardRef<HTMLDivElement, { data: InvoiceD
                      <span className="tabular-nums">{fmtPKR(c.amount)}</span>
                   </div>
                ))}
-               <div className="flex justify-between mt-2 pt-1 border-t border-gray-200/50">
-                 <span className="font-bold text-[#082041] tracking-wide">GRAND TOTAL DUE</span>
-                 <span className="tabular-nums font-bold text-[#082041]">{fmtPKR(grandTotalDue)}</span>
+               <div className="flex justify-between mt-1 text-[9px]">
+                 <span className="font-bold text-gray-700 tracking-wide">Total Extra Charges</span>
+                 <span className="tabular-nums text-gray-700 font-semibold">{fmtPKR(totalExtraCharges)}</span>
                </div>
             </div>
           )}
+
+          <div className="flex justify-between py-2 border-b border-gray-200 px-4 bg-gray-50">
+            <span className="font-bold text-[#082041] tracking-wide">GRAND TOTAL DUE</span>
+            <span className="tabular-nums font-bold text-[#082041]">{fmtPKR(grandTotalDue)}</span>
+          </div>
 
           <div className="flex justify-between py-2 border-b border-gray-200 px-4">
             <span className="font-bold text-emerald-700 tracking-wide">TOTAL RECEIVED</span>
